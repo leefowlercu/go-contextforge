@@ -1,0 +1,148 @@
+package contextforge
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+)
+
+// List retrieves a paginated list of tools from the ContextForge API.
+func (s *ToolsService) List(ctx context.Context, opts *ToolListOptions) ([]*Tool, *Response, error) {
+	u := "tools"
+	u, err := addOptions(u, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, err := s.client.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var tools []*Tool
+	resp, err := s.client.Do(ctx, req, &tools)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return tools, resp, nil
+}
+
+// Get retrieves a specific tool by its ID.
+func (s *ToolsService) Get(ctx context.Context, toolID string) (*Tool, *Response, error) {
+	u := fmt.Sprintf("tools/%s", url.PathEscape(toolID))
+
+	req, err := s.client.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var tool *Tool
+	resp, err := s.client.Do(ctx, req, &tool)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return tool, resp, nil
+}
+
+// Create creates a new tool.
+// The opts parameter allows setting team_id and visibility at the request wrapper level.
+func (s *ToolsService) Create(ctx context.Context, tool *Tool, opts *ToolCreateOptions) (*Tool, *Response, error) {
+	u := "tools"
+
+	// Build the request wrapper with tool and additional fields
+	body := map[string]any{
+		"tool": tool,
+	}
+
+	// Add optional fields from opts if provided
+	if opts != nil {
+		if opts.TeamID != nil {
+			body["team_id"] = *opts.TeamID
+		}
+		if opts.Visibility != nil {
+			body["visibility"] = *opts.Visibility
+		}
+	}
+
+	req, err := s.client.NewRequest(http.MethodPost, u, body)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var created *Tool
+	resp, err := s.client.Do(ctx, req, &created)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return created, resp, nil
+}
+
+// Update updates an existing tool.
+func (s *ToolsService) Update(ctx context.Context, toolID string, tool *Tool) (*Tool, *Response, error) {
+	u := fmt.Sprintf("tools/%s", url.PathEscape(toolID))
+
+	// Wrap the tool in a "tool" key as the API expects
+	body := map[string]*Tool{"tool": tool}
+
+	req, err := s.client.NewRequest(http.MethodPut, u, body)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var updated *Tool
+	resp, err := s.client.Do(ctx, req, &updated)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return updated, resp, nil
+}
+
+// Delete deletes a tool by its ID.
+func (s *ToolsService) Delete(ctx context.Context, toolID string) (*Response, error) {
+	u := fmt.Sprintf("tools/%s", url.PathEscape(toolID))
+
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := s.client.Do(ctx, req, nil)
+	if err != nil {
+		return resp, err
+	}
+
+	return resp, nil
+}
+
+// Toggle toggles a tool's active status.
+func (s *ToolsService) Toggle(ctx context.Context, toolID string, activate bool) (*Tool, *Response, error) {
+	u := fmt.Sprintf("tools/%s/toggle?activate=%t", url.PathEscape(toolID), activate)
+
+	req, err := s.client.NewRequest(http.MethodPost, u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// The API returns a response with the tool data nested in the response
+	var result map[string]any
+	resp, err := s.client.Do(ctx, req, &result)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	// Extract the tool from the response
+	var tool *Tool
+	if toolData, ok := result["tool"]; ok {
+		// Re-marshal and unmarshal to convert to Tool struct
+		toolJSON, _ := json.Marshal(toolData)
+		json.Unmarshal(toolJSON, &tool)
+	}
+
+	return tool, resp, nil
+}
