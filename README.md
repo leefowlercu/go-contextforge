@@ -49,14 +49,28 @@ This Go SDK provides an idiomatic interface to the ContextForge API, allowing yo
 - **Manage gateways** for MCP server federation and proxying
 - **Manage servers** with CRUD operations and association endpoints for tools, resources, and prompts
 - **Manage prompts** with template-based AI interactions and argument support
-- **Manage A2A agents** with agent-to-agent protocol support, invocation, and performance tracking
+- **Manage agents** with agent-to-agent (A2A) protocol support, invocation, and performance tracking
 - **Handle pagination** with cursor-based or offset-based (skip/limit) navigation
 - **Track rate limits** and handle API errors gracefully
 - **Authenticate** using Bearer token (JWT) authentication
 
+### MCP (Model Context Protocol)
+
+The Model Context Protocol (MCP) is an open protocol that standardizes how AI systems access external data sources, tools, and resources. MCP enables AI models to securely interact with databases, APIs, file systems, and other services through a unified interface, making it easier to build context-aware AI applications.
+
+ContextForge implements the MCP protocol as both a compliant MCP server and a federation gateway. It consolidates multiple MCP servers and REST services into a single endpoint, providing centralized authentication, rate limiting, observability, and resource management. This allows AI clients to discover and access tools, resources, and prompts from multiple sources through a single, unified API.
+
+For more information about the MCP protocol, see the [official documentation](https://modelcontextprotocol.io/).
+
 ### A2A Protocol
 
-The A2A (Agent-to-Agent) protocol enables inter-agent communication through ContextForge. A2A agents can expose capabilities, receive invocations with parameters, and communicate with other agents using a standardized protocol. The SDK provides full management of A2A agents including creation, configuration, invocation, and performance metrics tracking.
+The A2A (Agent-to-Agent) protocol is an open standard that enables communication and interoperability between independent AI agent systems. While MCP focuses on connecting AI models to tools and resources, A2A enables agents to discover, invoke, and collaborate with other agents, regardless of their underlying framework or implementation.
+
+Through ContextForge, agents advertise their capabilities using Agent Cards (JSON-formatted capability descriptions), allowing other agents to discover and invoke the best agent for a specific task. A2A agents can receive invocations with parameters, return structured responses, and track performance metrics across interactions.
+
+The SDK provides full management of A2A agents including creation, configuration, endpoint registration, invocation, and performance metrics tracking. This enables building multi-agent systems where specialized agents can collaborate through a standardized protocol.
+
+For more information about the A2A protocol, see the [official specification](https://a2a-protocol.org/latest/specification/) and [project website](https://a2aprotocol.ai/).
 
 ## Installation
 
