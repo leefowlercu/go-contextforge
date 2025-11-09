@@ -6,7 +6,6 @@ package integration
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"testing"
 	"time"
 
