@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2025-11-09
+
 ### Added
+- Initial SDK implementation with service-oriented architecture
+- `ToolsService` for managing MCP tools
+- `ResourcesService` for managing MCP resources
+- `GatewaysService` for managing MCP gateways
 - `ServersService` for managing MCP servers with full CRUD operations
 - `ServersService.ListTools()`, `ListResources()`, `ListPrompts()` for server associations
 - `PromptsService` for managing MCP prompts with full CRUD operations
@@ -17,14 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Semi-automated release workflow with version management
 - `contextforge/version.go` with `Version` constant
 - CHANGELOG.md for tracking releases
-
-## [0.1.0] - 2025-01-08
-
-### Added
-- Initial SDK implementation with service-oriented architecture
-- `ToolsService` for managing MCP tools
-- `ResourcesService` for managing MCP resources
-- `GatewaysService` for managing MCP gateways
 - `Client` with JWT authentication support
 - Rate limit tracking per endpoint
 - Cursor-based pagination support
