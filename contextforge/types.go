@@ -112,6 +112,7 @@ type Client struct {
 	Servers   *ServersService
 	Prompts   *PromptsService
 	Agents    *AgentsService
+	Teams     *TeamsService
 
 	// Rate limit tracking
 	rateMu     sync.Mutex
@@ -146,6 +147,10 @@ type PromptsService service
 // AgentsService handles communication with the A2A agent related
 // methods of the ContextForge API.
 type AgentsService service
+
+// TeamsService handles communication with the team related
+// methods of the ContextForge API.
+type TeamsService service
 
 // Response wraps the standard http.Response and provides convenient access to
 // pagination and rate limit information.
@@ -773,4 +778,125 @@ type AgentCreateOptions struct {
 type AgentInvokeRequest struct {
 	Parameters      map[string]any `json:"parameters,omitempty"`
 	InteractionType string         `json:"interaction_type,omitempty"` // default: "query"
+}
+
+// Team represents a ContextForge team.
+type Team struct {
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Slug        string     `json:"slug"`
+	Description *string    `json:"description,omitempty"`
+	IsPersonal  bool       `json:"is_personal"`
+	Visibility  *string    `json:"visibility,omitempty"`
+	MaxMembers  *int       `json:"max_members,omitempty"`
+	MemberCount int        `json:"member_count"`
+	IsActive    bool       `json:"is_active"`
+	CreatedBy   string     `json:"created_by"`
+	CreatedAt   *Timestamp `json:"created_at,omitempty"`
+	UpdatedAt   *Timestamp `json:"updated_at,omitempty"`
+}
+
+// TeamCreate represents the request body for creating a team.
+type TeamCreate struct {
+	Name        string  `json:"name"`
+	Slug        *string `json:"slug,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Visibility  *string `json:"visibility,omitempty"`
+	MaxMembers  *int    `json:"max_members,omitempty"`
+}
+
+// TeamUpdate represents the request body for updating a team.
+type TeamUpdate struct {
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Visibility  *string `json:"visibility,omitempty"`
+	MaxMembers  *int    `json:"max_members,omitempty"`
+}
+
+// TeamListResponse represents the response from the list teams endpoint.
+type TeamListResponse struct {
+	Teams []*Team `json:"teams"`
+	Total int     `json:"total"`
+}
+
+// TeamListOptions specifies the optional parameters for listing teams.
+type TeamListOptions struct {
+	// Skip specifies the number of items to skip (offset)
+	Skip int `url:"skip,omitempty"`
+
+	// Limit specifies the maximum number of items to return (max: 100, default: 50)
+	Limit int `url:"limit,omitempty"`
+}
+
+// TeamMember represents a member of a team.
+type TeamMember struct {
+	ID        string     `json:"id"`
+	TeamID    string     `json:"team_id"`
+	UserEmail string     `json:"user_email"`
+	Role      string     `json:"role"`
+	JoinedAt  *Timestamp `json:"joined_at,omitempty"`
+	InvitedBy *string    `json:"invited_by,omitempty"`
+	IsActive  bool       `json:"is_active"`
+}
+
+// TeamMemberUpdate represents the request body for updating a team member's role.
+type TeamMemberUpdate struct {
+	Role string `json:"role"`
+}
+
+// TeamInvitation represents a team invitation.
+type TeamInvitation struct {
+	ID        string     `json:"id"`
+	TeamID    string     `json:"team_id"`
+	TeamName  string     `json:"team_name"`
+	Email     string     `json:"email"`
+	Role      string     `json:"role"`
+	InvitedBy string     `json:"invited_by"`
+	InvitedAt *Timestamp `json:"invited_at,omitempty"`
+	ExpiresAt *Timestamp `json:"expires_at,omitempty"`
+	Token     string     `json:"token"`
+	IsActive  bool       `json:"is_active"`
+	IsExpired bool       `json:"is_expired"`
+}
+
+// TeamInvite represents the request body for inviting a user to a team.
+type TeamInvite struct {
+	Email string  `json:"email"`
+	Role  *string `json:"role,omitempty"`
+}
+
+// TeamDiscovery represents a team in the discovery list.
+type TeamDiscovery struct {
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Description *string    `json:"description,omitempty"`
+	MemberCount int        `json:"member_count"`
+	CreatedAt   *Timestamp `json:"created_at,omitempty"`
+	IsJoinable  bool       `json:"is_joinable"`
+}
+
+// TeamDiscoverOptions specifies the optional parameters for discovering teams.
+type TeamDiscoverOptions struct {
+	// Skip specifies the number of items to skip (offset)
+	Skip int `url:"skip,omitempty"`
+
+	// Limit specifies the maximum number of items to return (max: 100, default: 50)
+	Limit int `url:"limit,omitempty"`
+}
+
+// TeamJoinRequest represents the request body for joining a team.
+type TeamJoinRequest struct {
+	Message *string `json:"message,omitempty"`
+}
+
+// TeamJoinRequestResponse represents a team join request.
+type TeamJoinRequestResponse struct {
+	ID          string     `json:"id"`
+	TeamID      string     `json:"team_id"`
+	TeamName    string     `json:"team_name"`
+	UserEmail   string     `json:"user_email"`
+	Message     *string    `json:"message,omitempty"`
+	Status      string     `json:"status"`
+	RequestedAt *Timestamp `json:"requested_at,omitempty"`
+	ExpiresAt   *Timestamp `json:"expires_at,omitempty"`
 }

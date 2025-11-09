@@ -62,6 +62,7 @@ func newClient(httpClient *http.Client, baseURL *url.URL, bearerToken string) *C
 	c.Servers = (*ServersService)(&c.common)
 	c.Prompts = (*PromptsService)(&c.common)
 	c.Agents = (*AgentsService)(&c.common)
+	c.Teams = (*TeamsService)(&c.common)
 
 	return c
 }
