@@ -1,4 +1,4 @@
-.PHONY: help test test-verbose test-cover integration-test-setup integration-test integration-test-teardown integration-test-all test-all build examples build-all fmt vet lint check deps tidy update-deps clean coverage release-check release-prep release-patch release-minor release-major release ci
+.PHONY: help test test-verbose test-cover integration-test-setup integration-test integration-test-teardown integration-test-all test-all build examples build-all fmt vet lint check deps tidy update-deps clean coverage goreleaser-check goreleaser-snapshot release-check release-prep release-patch release-minor release-major release ci
 
 # Default target
 help: ## Display available make targets
@@ -24,6 +24,8 @@ help: ## Display available make targets
 	@echo "  update-deps          Update dependencies to latest versions"
 	@echo "  clean                Clean build artifacts and test cache"
 	@echo "  coverage             Generate HTML coverage report"
+	@echo "  goreleaser-check     Validate GoReleaser configuration"
+	@echo "  goreleaser-snapshot  Test release locally without publishing"
 	@echo "  release-check        Verify release prerequisites"
 	@echo "  release-patch        Prepare patch release (auto-increment patch version)"
 	@echo "  release-minor        Prepare minor release (auto-increment minor version)"
@@ -118,19 +120,33 @@ clean: ## Clean build artifacts and test cache
 	go clean -testcache -cache
 	rm -rf $(BUILD_DIR)
 	rm -f $(COVERAGE_FILE) coverage.html
+	rm -rf dist/
 
 coverage: test-cover ## Generate HTML coverage report
 	@echo "Generating HTML coverage report..."
 	go tool cover -html=$(COVERAGE_FILE) -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
+# GoReleaser targets
+goreleaser-check: ## Validate GoReleaser configuration
+	@echo "Checking GoReleaser configuration..."
+	@command -v goreleaser >/dev/null 2>&1 || (echo "Error: goreleaser not installed. Run: go install github.com/goreleaser/goreleaser/v2@latest" && exit 1)
+	goreleaser check
+
+goreleaser-snapshot: ## Test release locally without publishing
+	@echo "Creating snapshot release..."
+	@command -v goreleaser >/dev/null 2>&1 || (echo "Error: goreleaser not installed" && exit 1)
+	goreleaser release --snapshot --clean
+
 # Release targets
 release-check: ## Verify release prerequisites
 	@echo "Checking release prerequisites..."
 	@command -v git >/dev/null 2>&1 || (echo "Error: git is required" && exit 1)
+	@command -v goreleaser >/dev/null 2>&1 || (echo "Error: goreleaser not installed. Run: go install github.com/goreleaser/goreleaser/v2@latest" && exit 1)
 	@git diff --quiet || (echo "Error: uncommitted changes detected" && exit 1)
 	@git diff --cached --quiet || (echo "Error: staged changes detected" && exit 1)
 	@[ -z "$$(git status --porcelain)" ] || (echo "Error: working directory not clean" && exit 1)
+	@goreleaser check || (echo "Error: goreleaser config validation failed" && exit 1)
 	@echo "Prerequisites check passed"
 
 release-patch: release-check ## Prepare patch release (auto-increment patch version)

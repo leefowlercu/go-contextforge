@@ -102,11 +102,13 @@ Run `make help` to see all available targets. Key workflows:
 - `make ci` - Full CI pipeline (deps, lint, test, build)
 
 **Releasing**:
+- `make goreleaser-check` - Validate GoReleaser configuration
+- `make goreleaser-snapshot` - Test release locally without publishing
+- `make release-check` - Verify release prerequisites
 - `make release-patch` - Prepare patch release (auto-increment patch version)
 - `make release-minor` - Prepare minor release (auto-increment minor version)
 - `make release-major` - Prepare major release (auto-increment major version)
 - `make release-prep VERSION=vX.Y.Z` - Prepare release with specific version
-- `make release-check` - Verify release prerequisites
 
 ## Release Workflow
 
@@ -118,6 +120,8 @@ The project uses semantic versioning with automated release tooling.
 - **User agent**: Automatically constructed as `"go-contextforge/v" + Version`
 - **Changelog**: Maintained in `CHANGELOG.md` following Keep a Changelog format
 - **Git tags**: Use format `vX.Y.Z` (semantic versioning with `v` prefix)
+- **GoReleaser**: Required for release automation - install with `go install github.com/goreleaser/goreleaser/v2@latest`
+- **GitHub Token**: Set `GITHUB_TOKEN` environment variable for GitHub release creation
 
 ### Release Commands
 
@@ -137,12 +141,22 @@ make release-prep VERSION=v0.2.5
 
 Each release command performs:
 1. Checks git working directory is clean (via `release-check` target)
-2. Calculates new version by parsing current version from `contextforge/version.go`
-3. Updates `contextforge/version.go` with new version constant
-4. Updates `CHANGELOG.md` by moving Unreleased section to new version with release date
+2. Checks that `goreleaser` is installed
+3. Calculates new version by parsing current version from `contextforge/version.go`
+4. Updates `contextforge/version.go` with new version constant
 5. Creates commit with message `release: prepare vX.Y.Z`
 6. Creates annotated git tag `vX.Y.Z`
-7. Displays push instructions
+7. Runs `goreleaser release --clean` which:
+   - Updates CHANGELOG.md from conventional commits
+   - Creates draft GitHub release with release notes
+8. Displays instructions for reviewing and publishing
+
+**Changelog and Release Generation:**
+- Uses GoReleaser to auto-generate from conventional commit messages
+- Configuration in `.goreleaser.yaml` controls changelog grouping and release format
+- Creates DRAFT GitHub releases for manual review before publishing
+- Updates CHANGELOG.md file alongside GitHub release notes
+- Commit types map to Keep a Changelog sections: feat→Added, fix→Fixed, docs→Documentation, refactor→Changed, etc.
 
 ### Release Scripts
 
@@ -155,19 +169,31 @@ Each release command performs:
 
 **scripts/prepare-release.sh:**
 - Validates version format (vX.Y.Z)
+- Checks for `goreleaser` installation
+- Checks for `GITHUB_TOKEN` environment variable (warns if missing)
 - Updates version constant using sed
-- Updates CHANGELOG.md with release date
-- Commits changes and creates git tag
+- Commits version change
+- Creates annotated git tag
+- Runs `goreleaser release --clean` to update CHANGELOG.md and create draft GitHub release
+- Includes error handling to rollback commit and tag if goreleaser fails
 - Includes cleanup trap to remove `.next-version` on exit
 
 ### Making Releases
 
 When assisting with releases:
 1. **Never commit release changes directly** - only prepare them
-2. **Always verify prerequisites** - ensure clean git status
+2. **Always verify prerequisites** - ensure clean git status, goreleaser installed, and GITHUB_TOKEN set
 3. **Use semantic versioning** - choose appropriate bump type based on changes
-4. **Update CHANGELOG** - ensure Unreleased section has meaningful content before releasing
-5. **Follow conventional commits** - use `release: prepare vX.Y.Z` format for release commits
+4. **Write good commit messages** - changelog is auto-generated from conventional commits, so descriptive subject lines are critical
+5. **Review generated content** - verify draft GitHub release and CHANGELOG.md changes are accurate and complete
+6. **Follow conventional commits** - use `release: prepare vX.Y.Z` format for release commits
+
+**Important for Changelog Quality:**
+- Since changelog entries are generated from commit messages, all commits should use conventional commit format
+- Subject lines should be clear, descriptive, and user-facing when appropriate
+- Use correct commit type prefixes (feat, fix, docs, etc.) as they determine changelog section grouping
+- Commit types map to Keep a Changelog sections: feat→Added, fix/bug→Fixed, docs→Documentation, refactor→Changed, etc.
+- GoReleaser creates DRAFT releases - always review before publishing
 
 ### Undoing Release Preparation
 

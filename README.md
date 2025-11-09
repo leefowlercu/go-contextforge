@@ -789,16 +789,28 @@ make ci
 - `make test-all` - Run both unit and integration tests
 
 **Releasing:**
+- `make goreleaser-check` - Validate GoReleaser configuration
+- `make goreleaser-snapshot` - Test release locally without publishing
+- `make release-check` - Verify release prerequisites
 - `make release-patch` - Prepare patch release (auto-increment patch version)
 - `make release-minor` - Prepare minor release (auto-increment minor version)
 - `make release-major` - Prepare major release (auto-increment major version)
 - `make release-prep VERSION=vX.Y.Z` - Prepare release with specific version
 - `make release` - Full release preparation workflow
-- `make release-check` - Verify release prerequisites
 
 ## Releasing
 
 This project uses semantic versioning and includes automated release tooling to streamline the release process.
+
+**Prerequisites:**
+- [GoReleaser](https://goreleaser.com/install/) - Required for automated release management
+  ```bash
+  go install github.com/goreleaser/goreleaser/v2@latest
+  ```
+- **GitHub Token** - Set `GITHUB_TOKEN` environment variable for GitHub release creation
+  - Create token at: https://github.com/settings/tokens/new
+  - Required scopes: `repo` (full repository access)
+  - Add to your shell profile: `export GITHUB_TOKEN=your_token_here`
 
 ### Semantic Version Bumping
 
@@ -827,13 +839,18 @@ make release-prep VERSION=v0.2.5
 
 Each release command performs the following steps:
 
-1. **Prerequisites check**: Ensures git working directory is clean
+1. **Prerequisites check**: Ensures git working directory is clean and goreleaser is installed
 2. **Version calculation**: Determines new version based on current version in `contextforge/version.go`
 3. **Update version constant**: Updates `contextforge/version.go` with new version
-4. **Update changelog**: Updates `CHANGELOG.md` with release date
-5. **Create commit**: Commits changes with message `release: prepare vX.Y.Z`
-6. **Create tag**: Creates annotated git tag for the release
-7. **Display instructions**: Shows commands to push changes and create GitHub release
+4. **Create commit**: Commits version change with message `release: prepare vX.Y.Z`
+5. **Create tag**: Creates annotated git tag for the release
+6. **Run GoReleaser**: Executes `goreleaser release --clean` which:
+   - Updates CHANGELOG.md from conventional commits
+   - Creates draft GitHub release with release notes
+7. **Manual review**: Review the draft release on GitHub and CHANGELOG.md changes locally
+8. **Publish**: When ready, push commit and tags, then publish the draft release on GitHub
+
+**Note:** GoReleaser creates a DRAFT release for review before publishing. The changelog is auto-generated from commit messages using conventional commits format.
 
 ### Pushing Releases
 
@@ -851,8 +868,36 @@ git push && git push --tags
 
 - **SDK Version**: Defined in `contextforge/version.go` as `Version` constant
 - **User Agent**: Automatically includes SDK version (`go-contextforge/vX.Y.Z`)
-- **Changelog**: Maintained in `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/) format
+- **Changelog**: Auto-generated from conventional commits using GoReleaser, following [Keep a Changelog](https://keepachangelog.com/) format
 - **Git Tags**: Use format `vX.Y.Z` (semantic versioning with `v` prefix)
+- **Commit Format**: All commits should use [conventional commits](https://www.conventionalcommits.org/) format (e.g., `feat:`, `fix:`, `docs:`)
+
+### Changelog Generation
+
+The project uses [GoReleaser](https://goreleaser.com/) to automatically generate the changelog from commit messages. Changelog generation happens automatically during the release workflow and creates entries in both CHANGELOG.md and the GitHub release notes.
+
+**Testing GoReleaser Configuration:**
+```bash
+# Validate GoReleaser configuration
+make goreleaser-check
+
+# Test release locally without publishing
+make goreleaser-snapshot
+```
+
+**Configuration** (`.goreleaser.yaml`):
+- Uses GitHub's native changelog generation
+- Groups commits by conventional commit type
+- Excludes merge commits and release preparation commits
+- Creates draft GitHub releases for manual review
+
+**Commit types map to changelog sections:**
+- `feat:` → Added
+- `fix:`, `bug:` → Fixed
+- `refactor:` → Changed
+- `docs:` → Documentation
+- `build:`, `chore:` → Build
+- `test:`, `style:` → Tests
 
 ### Undoing a Release Preparation
 

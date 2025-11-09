@@ -1,0 +1,92 @@
+version: 2
+
+# Project metadata
+project_name: go-contextforge
+
+# Pre-release hooks
+before:
+  hooks:
+    - go mod tidy
+
+# Skip binary builds (library-only project)
+builds:
+  - skip: true
+
+# Skip creating archives (library-only project)
+archives:
+  - id: skip-archives
+    # GitHub will auto-generate source archives
+
+# Skip checksums
+checksum:
+  disable: true
+
+# Changelog configuration
+changelog:
+  use: github
+  sort: asc
+  abbrev: 7
+
+  # Group commits by conventional commit type
+  groups:
+    - title: Added
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: Fixed
+      regexp: '^.*?(fix|bug)(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Changed
+      regexp: '^.*?refactor(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Documentation
+      regexp: '^.*?docs?(\([[:word:]]+\))??!?:.+$'
+      order: 3
+    - title: Build
+      regexp: '^.*?(build|chore)(\([[:word:]]+\))??!?:.+$'
+      order: 4
+    - title: Tests
+      regexp: '^.*?(test|style)(\([[:word:]]+\))??!?:.+$'
+      order: 5
+
+  # Exclude release preparation commits
+  filters:
+    exclude:
+      - '^release: prepare v'
+      - '^docs: update changelog'
+      - Merge pull request
+      - Merge branch
+
+# GitHub release configuration
+release:
+  github:
+    owner: leefowlercu
+    name: go-contextforge
+
+  # Create draft releases for manual review
+  draft: true
+
+  # Replace existing draft if present
+  replace_existing_draft: true
+
+  # Release name matches tag
+  name_template: "{{.Tag}}"
+
+  # Auto-detect pre-releases
+  prerelease: auto
+
+  # Custom header
+  header: |
+    ## Go ContextForge SDK {{.Tag}}
+
+    Go SDK for the IBM ContextForge MCP Gateway API.
+
+    **Installation:**
+    ```bash
+    go get github.com/leefowlercu/go-contextforge@{{.Tag}}
+    ```
+
+  # Custom footer
+  footer: |
+    ---
+
+    **Full Changelog**: https://github.com/leefowlercu/go-contextforge/compare/{{.PreviousTag}}...{{.Tag}}

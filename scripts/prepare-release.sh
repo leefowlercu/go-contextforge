@@ -50,53 +50,55 @@ rm -f "${VERSION_FILE}.bak"
 
 echo -e "${GREEN}Updated version in $VERSION_FILE to $VERSION_NUMBER${NC}"
 
-# Update CHANGELOG.md
-echo -e "${YELLOW}Updating CHANGELOG.md...${NC}"
-CHANGELOG_FILE="CHANGELOG.md"
-if [ ! -f "$CHANGELOG_FILE" ]; then
-    echo -e "${RED}Error: $CHANGELOG_FILE not found${NC}"
-    exit 1
-fi
+# Stage version file
+git add "$VERSION_FILE"
 
-# Get current date in YYYY-MM-DD format
-RELEASE_DATE=$(date +%Y-%m-%d)
-
-# Replace [Unreleased] with [VERSION] - DATE and add new [Unreleased] section
-# This is a simple approach - for more sophisticated changelog management, consider git-chglog
-if grep -q "## \[Unreleased\]" "$CHANGELOG_FILE"; then
-    # Create temp file with updated changelog
-    awk -v version="$VERSION_NUMBER" -v date="$RELEASE_DATE" '
-    /## \[Unreleased\]/ {
-        print $0
-        print ""
-        print "## [" version "] - " date
-        next
-    }
-    { print }
-    ' "$CHANGELOG_FILE" > "${CHANGELOG_FILE}.tmp"
-    mv "${CHANGELOG_FILE}.tmp" "$CHANGELOG_FILE"
-    echo -e "${GREEN}Updated CHANGELOG.md with release $VERSION${NC}"
-else
-    echo -e "${YELLOW}Warning: [Unreleased] section not found in CHANGELOG.md${NC}"
-    echo -e "${YELLOW}Please manually update CHANGELOG.md${NC}"
-fi
-
-# Stage changes
-echo -e "${YELLOW}Staging changes...${NC}"
-git add "$VERSION_FILE" "$CHANGELOG_FILE"
-
-# Commit changes
-echo -e "${YELLOW}Creating release commit...${NC}"
+# Commit version change
+echo -e "${YELLOW}Creating version bump commit...${NC}"
 COMMIT_MESSAGE="release: prepare ${VERSION}"
 git commit -m "$COMMIT_MESSAGE"
-
 echo -e "${GREEN}Created commit: $COMMIT_MESSAGE${NC}"
 
 # Create annotated tag
 echo -e "${YELLOW}Creating git tag ${VERSION}...${NC}"
 git tag -a "$VERSION" -m "Go ContextForge SDK $VERSION"
-
 echo -e "${GREEN}Created annotated tag: $VERSION${NC}"
+
+# Check for GoReleaser and GITHUB_TOKEN
+if ! command -v goreleaser &> /dev/null; then
+    echo -e "${RED}Error: goreleaser is not installed${NC}"
+    echo -e "${YELLOW}Install with: go install github.com/goreleaser/goreleaser/v2@latest${NC}"
+    git tag -d "$VERSION"
+    git reset --hard HEAD~1
+    exit 1
+fi
+
+if [ -z "$GITHUB_TOKEN" ]; then
+    echo -e "${RED}Warning: GITHUB_TOKEN environment variable not set${NC}"
+    echo -e "${YELLOW}GoReleaser needs this to create GitHub releases${NC}"
+    echo -e "${YELLOW}See README.md for setup instructions${NC}"
+    echo ""
+    echo -e "${YELLOW}Continue anyway? Release will fail but you can retry later. (y/N)${NC}"
+    read -r response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}Undoing tag and commit...${NC}"
+        git tag -d "$VERSION"
+        git reset --hard HEAD~1
+        exit 1
+    fi
+fi
+
+# Run GoReleaser to create draft release and update CHANGELOG.md
+echo -e "${YELLOW}Running GoReleaser...${NC}"
+if ! goreleaser release --clean; then
+    echo -e "${RED}Error: GoReleaser failed${NC}"
+    echo -e "${YELLOW}Undoing tag and commit...${NC}"
+    git tag -d "$VERSION"
+    git reset --hard HEAD~1
+    exit 1
+fi
+
+echo -e "${GREEN}GoReleaser completed successfully!${NC}"
 
 # Display next steps
 echo ""
@@ -104,17 +106,25 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Release preparation complete!${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
+echo -e "${YELLOW}GoReleaser has:${NC}"
+echo "  - Updated CHANGELOG.md"
+echo "  - Created draft GitHub release"
+echo ""
 echo -e "${YELLOW}Next steps:${NC}"
-echo "1. Review the changes:"
-echo "   git show HEAD"
+echo "1. Review the draft release on GitHub:"
+echo "   https://github.com/leefowlercu/go-contextforge/releases"
 echo ""
-echo "2. Push the changes and tag:"
-echo "   git push && git push --tags"
+echo "2. Review CHANGELOG.md changes:"
+echo "   git diff CHANGELOG.md"
 echo ""
-echo "3. Create a GitHub release at:"
-echo "   https://github.com/leefowlercu/go-contextforge/releases/new?tag=$VERSION"
+echo "3. If changes needed:"
+echo "   - Edit release notes on GitHub and/or CHANGELOG.md locally"
+echo "   - Amend commit: git add CHANGELOG.md && git commit --amend --no-edit"
+echo "   - OR undo completely: git tag -d $VERSION && git reset --hard HEAD~1"
 echo ""
-echo -e "${YELLOW}Note: If you need to undo this release preparation:${NC}"
-echo "   git tag -d $VERSION"
-echo "   git reset --hard HEAD~1"
+echo "4. When ready to publish:"
+echo "   - Push commit and tag: git push && git push --tags"
+echo "   - Publish draft release on GitHub"
+echo ""
+echo -e "${YELLOW}Note: GoReleaser created a DRAFT release. Review before publishing.${NC}"
 echo ""
