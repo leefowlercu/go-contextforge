@@ -26,6 +26,7 @@ const (
 	testResourceNamePrefix = "test-resource"
 	testServerNamePrefix   = "test-server"
 	testAgentNamePrefix    = "test-agent"
+	testTeamNamePrefix     = "test-team"
 )
 
 // skipIfNotIntegration skips the test if INTEGRATION_TESTS is not set to "true"
@@ -616,5 +617,78 @@ func cleanupAgents(t *testing.T, client *contextforge.Client, agentIDs []string)
 
 	for _, agentID := range agentIDs {
 		cleanupAgent(t, client, agentID)
+	}
+}
+
+// Team helpers
+
+// randomTeamName generates a unique team name for testing
+func randomTeamName() string {
+	return fmt.Sprintf("%s-%d", testTeamNamePrefix, time.Now().UnixNano())
+}
+
+// minimalTeamInput returns a minimal valid team input for testing
+func minimalTeamInput() *contextforge.TeamCreate {
+	return &contextforge.TeamCreate{
+		Name: randomTeamName(),
+	}
+}
+
+// completeTeamInput returns a team input with all optional fields for testing
+func completeTeamInput() *contextforge.TeamCreate {
+	name := randomTeamName()
+	return &contextforge.TeamCreate{
+		Name:        name,
+		Slug:        contextforge.String(fmt.Sprintf("%s-slug", name)),
+		Description: contextforge.String("A complete test team with all fields"),
+		Visibility:  contextforge.String("private"),
+		MaxMembers:  contextforge.Int(50),
+	}
+}
+
+// createTestTeam creates a test team and registers it for cleanup
+func createTestTeam(t *testing.T, client *contextforge.Client, name string) *contextforge.Team {
+	t.Helper()
+
+	team := &contextforge.TeamCreate{
+		Name:        name,
+		Description: contextforge.String("Test team created by integration test"),
+	}
+
+	ctx := context.Background()
+	created, _, err := client.Teams.Create(ctx, team)
+	if err != nil {
+		t.Fatalf("Failed to create test team: %v", err)
+	}
+
+	t.Logf("Created test team: %s (ID: %s)", created.Name, created.ID)
+
+	// Register cleanup
+	t.Cleanup(func() {
+		cleanupTeam(t, client, created.ID)
+	})
+
+	return created
+}
+
+// cleanupTeam deletes a team by ID (ignores errors for cleanup)
+func cleanupTeam(t *testing.T, client *contextforge.Client, teamID string) {
+	t.Helper()
+
+	ctx := context.Background()
+	_, err := client.Teams.Delete(ctx, teamID)
+	if err != nil {
+		t.Logf("Warning: Failed to cleanup team %s: %v (may already be deleted)", teamID, err)
+	} else {
+		t.Logf("Cleaned up team: %s", teamID)
+	}
+}
+
+// cleanupTeams deletes multiple teams by ID (ignores errors for cleanup)
+func cleanupTeams(t *testing.T, client *contextforge.Client, teamIDs []string) {
+	t.Helper()
+
+	for _, teamID := range teamIDs {
+		cleanupTeam(t, client, teamID)
 	}
 }
