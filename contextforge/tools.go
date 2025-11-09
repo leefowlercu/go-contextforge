@@ -8,6 +8,12 @@ import (
 	"net/url"
 )
 
+// ToolsService handles communication with the tool-related
+// methods of the ContextForge API.
+//
+// Note: All /tools/* endpoints are REST API management endpoints.
+// There are no MCP protocol endpoints to exclude for this service.
+
 // List retrieves a paginated list of tools from the ContextForge API.
 func (s *ToolsService) List(ctx context.Context, opts *ToolListOptions) ([]*Tool, *Response, error) {
 	u := "tools"

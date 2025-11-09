@@ -8,6 +8,12 @@ import (
 	"net/url"
 )
 
+// GatewaysService handles communication with the gateway-related
+// methods of the ContextForge API.
+//
+// Note: All /gateways/* endpoints are REST API management endpoints.
+// There are no MCP protocol endpoints to exclude for this service.
+
 // List retrieves a list of gateways from the ContextForge API.
 func (s *GatewaysService) List(ctx context.Context, opts *GatewayListOptions) ([]*Gateway, *Response, error) {
 	u := "gateways"
