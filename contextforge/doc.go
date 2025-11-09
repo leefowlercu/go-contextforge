@@ -12,8 +12,12 @@
 //
 //   - Manage tools with create, update, delete, and toggle operations
 //   - Manage resources with URI-based access and template support
-//   - Manage servers including virtual MCP servers
-//   - Cursor-based pagination support
+//   - Manage gateways for MCP server federation and proxying
+//   - Manage servers including virtual MCP servers with association endpoints
+//   - Manage prompts with template-based AI interactions
+//   - Manage A2A agents with agent-to-agent protocol support and invocation
+//   - Cursor-based pagination (Tools, Resources, Gateways, Servers, Prompts)
+//   - Skip/limit pagination (Agents)
 //   - Rate limit tracking from response headers
 //   - Context support for all API calls
 //   - Bearer token (JWT) authentication
@@ -32,9 +36,16 @@
 //
 //	import "github.com/leefowlercu/go-contextforge/contextforge"
 //
-// Create a new client:
+// Create a new client with default base URL (http://localhost:8000/):
 //
 //	client := contextforge.NewClient(nil, "your-jwt-token")
+//
+// Create a client with custom base URL:
+//
+//	client, err := contextforge.NewClientWithBaseURL(nil, "https://contextforge.example.com/", "your-jwt-token")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
 //
 // You can provide a custom HTTP client for advanced configuration:
 //
@@ -71,20 +82,20 @@
 //
 //	newTool := &contextforge.Tool{
 //		Name: "my-tool",
-//		Description: "A custom tool",
+//		Description: contextforge.String("A custom tool"),
 //		InputSchema: map[string]any{
 //			"type": "object",
 //			"properties": map[string]any{
 //				"input": map[string]any{"type": "string"},
 //			},
 //		},
-//		Active: true,
+//		Enabled: true,
 //	}
-//	created, resp, err := client.Tools.Create(context.Background(), newTool)
+//	created, resp, err := client.Tools.Create(context.Background(), newTool, nil)
 //
 // Update a tool:
 //
-//	tool.Description = "Updated description"
+//	tool.Description = contextforge.String("Updated description")
 //	updated, resp, err := client.Tools.Update(context.Background(), "tool-id", tool)
 //
 // Toggle a tool's status:
@@ -97,7 +108,9 @@
 //
 // # Pagination
 //
-// The API uses cursor-based pagination. Use ListOptions to control pagination:
+// The API supports two pagination patterns:
+//
+// Cursor-based pagination (Tools, Resources, Gateways, Servers, Prompts):
 //
 //	var allTools []*contextforge.Tool
 //	opts := &contextforge.ToolListOptions{
@@ -115,6 +128,26 @@
 //			break
 //		}
 //		opts.Cursor = resp.NextCursor
+//	}
+//
+// Skip/limit (offset-based) pagination (Agents only):
+//
+//	var allAgents []*contextforge.Agent
+//	opts := &contextforge.AgentListOptions{
+//		Limit: 50,
+//	}
+//
+//	for skip := 0; ; skip += opts.Limit {
+//		opts.Skip = skip
+//		agents, _, err := client.Agents.List(context.Background(), opts)
+//		if err != nil {
+//			break
+//		}
+//		allAgents = append(allAgents, agents...)
+//
+//		if len(agents) < opts.Limit {
+//			break
+//		}
 //	}
 //
 // # Error Handling
@@ -153,19 +186,34 @@
 //	// Available services
 //	client.Tools      // Tool-related operations
 //	client.Resources  // Resource-related operations
-//	client.Servers    // Server-related operations (planned)
-//	client.Gateways   // Gateway-related operations (planned)
-//	client.Prompts    // Prompt-related operations (planned)
+//	client.Gateways   // Gateway-related operations
+//	client.Servers    // Server-related operations
+//	client.Prompts    // Prompt-related operations
+//	client.Agents     // A2A agent-related operations
 //
-// Each service provides methods for different operations:
+// Each service provides methods for different operations. Most services follow
+// a common CRUD pattern:
 //
-//	// ToolsService methods
-//	List(ctx, opts) ([]*Tool, *Response, error)
-//	Get(ctx, toolID) (*Tool, *Response, error)
-//	Create(ctx, tool) (*Tool, *Response, error)
-//	Update(ctx, toolID, tool) (*Tool, *Response, error)
-//	Delete(ctx, toolID) (*Response, error)
-//	Toggle(ctx, toolID, activate) (*Tool, *Response, error)
+//	// Common CRUD methods (most services)
+//	List(ctx, opts) ([]*Type, *Response, error)
+//	Get(ctx, id) (*Type, *Response, error)
+//	Create(ctx, item, opts) (*Type, *Response, error)  // opts is optional
+//	Update(ctx, id, item) (*Type, *Response, error)
+//	Delete(ctx, id) (*Response, error)
+//	Toggle(ctx, id, activate) (*Type, *Response, error)
+//
+// Some services have unique methods:
+//
+//	// ServersService association endpoints
+//	client.Servers.ListTools(ctx, serverID, opts)
+//	client.Servers.ListResources(ctx, serverID, opts)
+//	client.Servers.ListPrompts(ctx, serverID, opts)
+//
+//	// ResourcesService template support
+//	client.Resources.ListTemplates(ctx)
+//
+//	// AgentsService invocation
+//	client.Agents.Invoke(ctx, agentName, req)  // Uses name, not ID
 //
 // # Helper Functions
 //
