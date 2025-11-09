@@ -18,6 +18,7 @@ A Go SDK for the [IBM ContextForge MCP Gateway](https://github.com/IBM/mcp-conte
   - [Managing Gateways](#managing-gateways)
   - [Managing Servers](#managing-servers)
   - [Managing Prompts](#managing-prompts)
+  - [Managing Agents](#managing-agents)
   - [Pagination](#pagination)
   - [Error Handling](#error-handling)
 - [API Methods Reference](#api-methods-reference)
@@ -26,6 +27,8 @@ A Go SDK for the [IBM ContextForge MCP Gateway](https://github.com/IBM/mcp-conte
   - [Gateways Service](#gateways-service)
   - [Servers Service](#servers-service)
   - [Prompts Service](#prompts-service)
+  - [Agents Service](#agents-service)
+- [Examples](#examples)
 - [Development](#development)
 - [Releasing](#releasing)
 - [Architecture](#architecture)
@@ -44,9 +47,14 @@ This Go SDK provides an idiomatic interface to the ContextForge API, allowing yo
 - **Manage gateways** for MCP server federation and proxying
 - **Manage servers** with CRUD operations and association endpoints for tools, resources, and prompts
 - **Manage prompts** with template-based AI interactions and argument support
-- **Handle pagination** with cursor-based navigation
+- **Manage A2A agents** with agent-to-agent protocol support, invocation, and performance tracking
+- **Handle pagination** with cursor-based or offset-based (skip/limit) navigation
 - **Track rate limits** and handle API errors gracefully
 - **Authenticate** using Bearer token (JWT) authentication
+
+### A2A Protocol
+
+The A2A (Agent-to-Agent) protocol enables inter-agent communication through ContextForge. A2A agents can expose capabilities, receive invocations with parameters, and communicate with other agents using a standardized protocol. The SDK provides full management of A2A agents including creation, configuration, invocation, and performance metrics tracking.
 
 ## Installation
 
@@ -413,7 +421,115 @@ _, err = client.Prompts.Delete(ctx, 123)
 
 **Note:** The PromptsService excludes MCP client endpoints (`POST /prompts/{id}` for rendered prompts). These are for MCP client communication, not REST API management.
 
+### Managing Agents
+
+A2A (Agent-to-Agent) agents enable inter-agent communication through ContextForge. Agents have different types for different operations due to API field naming conventions:
+
+- **AgentCreate**: For creating agents (uses snake_case: `endpoint_url`, `agent_type`)
+- **Agent**: For reading agents (uses camelCase: `endpointUrl`, `agentType`)
+- **AgentUpdate**: For updating agents (uses camelCase: `endpointUrl`, `agentType`)
+
+```go
+ctx := context.Background()
+
+// List agents with skip/limit pagination (not cursor-based)
+agents, _, err := client.Agents.List(ctx, &contextforge.AgentListOptions{
+    Skip:  0,
+    Limit: 20,
+})
+
+// List with filtering
+opts := &contextforge.AgentListOptions{
+    Skip:            10,
+    Limit:           50,
+    IncludeInactive: true,
+    Tags:            "automation,integration",
+    TeamID:          "team-123",
+    Visibility:      "public",
+}
+agents, _, err = client.Agents.List(ctx, opts)
+
+// Get agent by ID
+agent, _, err := client.Agents.Get(ctx, "agent-id")
+
+// Create a new agent
+newAgent := &contextforge.AgentCreate{
+    Name:            "data-processor",
+    EndpointURL:     "https://agent.example.com/a2a",
+    Description:     contextforge.String("Processes data records"),
+    AgentType:       "generic",        // Note: snake_case for Create
+    ProtocolVersion: "1.0",
+    Capabilities: map[string]any{
+        "streaming": true,
+        "batch":     true,
+    },
+    Config: map[string]any{
+        "timeout": 30,
+        "retries": 3,
+    },
+    AuthType:  contextforge.String("bearer"),
+    AuthValue: contextforge.String("secret-token"), // Encrypted by API
+    Tags:      []string{"data", "processing"},
+}
+
+// Create with optional team/visibility settings
+createOpts := &contextforge.AgentCreateOptions{
+    TeamID:     contextforge.String("team-123"),
+    Visibility: contextforge.String("public"),
+}
+created, _, err := client.Agents.Create(ctx, newAgent, createOpts)
+
+// Create without options
+created, _, err = client.Agents.Create(ctx, newAgent, nil)
+
+// Update agent (uses camelCase fields)
+update := &contextforge.AgentUpdate{
+    Description:     contextforge.String("Updated description"),
+    AgentType:       contextforge.String("specialized"), // Note: camelCase for Update
+    ProtocolVersion: contextforge.String("2.0"),
+    Tags:            []string{"updated", "enhanced"},
+}
+updated, _, err := client.Agents.Update(ctx, "agent-id", update)
+
+// Toggle agent status
+toggled, _, err := client.Agents.Toggle(ctx, "agent-id", true) // enable
+toggled, _, err = client.Agents.Toggle(ctx, "agent-id", false) // disable
+
+// Invoke an agent by name (not ID!)
+invokeReq := &contextforge.AgentInvokeRequest{
+    Parameters: map[string]any{
+        "input": "data to process",
+        "options": map[string]any{
+            "format":   "json",
+            "validate": true,
+        },
+    },
+    InteractionType: "query", // default: "query"
+}
+result, _, err := client.Agents.Invoke(ctx, created.Name, invokeReq)
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("Result: %v\n", result)
+
+// Delete agent
+_, err = client.Agents.Delete(ctx, "agent-id")
+```
+
+**Important Notes:**
+
+- **Pagination**: Agents use skip/limit (offset-based) pagination instead of cursor-based pagination used by other services
+- **Invoke endpoint**: Uses agent name (not ID) as the identifier
+- **Field naming**: AgentCreate uses snake_case, while AgentUpdate uses camelCase
+- **Authentication**: The `AuthValue` field is encrypted by the API when stored
+- **Dual states**: Agents have both `Enabled` (user-controlled) and `Reachable` (system status) states
+- **Performance metrics**: Agents track execution metrics including success/failure rates and response times
+
 ### Pagination
+
+ContextForge supports two pagination patterns:
+
+**Cursor-based pagination** (Tools, Resources, Gateways, Servers, Prompts):
 
 ```go
 opts := &contextforge.ToolListOptions{
@@ -436,6 +552,32 @@ for {
         break
     }
     opts.Cursor = resp.NextCursor
+}
+```
+
+**Skip/limit (offset-based) pagination** (Agents only):
+
+```go
+opts := &contextforge.AgentListOptions{
+    Limit: 50,
+}
+
+for skip := 0; ; skip += opts.Limit {
+    opts.Skip = skip
+    agents, _, err := client.Agents.List(ctx, opts)
+    if err != nil {
+        break
+    }
+
+    // Process agents
+    for _, agent := range agents {
+        fmt.Printf("Agent: %s\n", agent.Name)
+    }
+
+    // Check if we've reached the end
+    if len(agents) < opts.Limit {
+        break
+    }
 }
 ```
 
@@ -523,6 +665,45 @@ if resp.Rate.Limit > 0 {
 | `Update(ctx, promptID, prompt)` | Update prompt |
 | `Delete(ctx, promptID)` | Delete prompt |
 | `Toggle(ctx, promptID, activate)` | Toggle prompt active status |
+
+### Agents Service
+
+| Method | Description |
+|--------|-------------|
+| `List(ctx, opts)` | List agents with skip/limit pagination and filtering |
+| `Get(ctx, agentID)` | Get agent by ID |
+| `Create(ctx, agent, opts)` | Create a new agent with optional settings |
+| `Update(ctx, agentID, agent)` | Update agent |
+| `Delete(ctx, agentID)` | Delete agent |
+| `Toggle(ctx, agentID, activate)` | Toggle agent enabled status |
+| `Invoke(ctx, agentName, req)` | Invoke agent by name with parameters |
+
+**Note:** Agents use skip/limit (offset-based) pagination instead of cursor-based pagination. The Invoke method uses agent name (not ID) as the identifier.
+
+## Examples
+
+The SDK includes working example programs demonstrating all service features:
+
+- **[tools/](examples/tools/)** - Tools service CRUD operations and filtering
+- **[resources/](examples/resources/)** - Resources service with templates
+- **[gateways/](examples/gateways/)** - Gateway federation and proxying
+- **[servers/](examples/servers/)** - Server management and associations
+- **[prompts/](examples/prompts/)** - Prompt templates and arguments
+- **[agents/](examples/agents/)** - A2A agents, invocation, and skip/limit pagination
+
+Each example includes a mock HTTP server and demonstrates:
+- Authentication flow
+- CRUD operations
+- Pagination patterns (cursor or skip/limit)
+- Filtering and querying
+- Error handling
+- Service-specific features
+
+Run any example:
+```bash
+go run examples/tools/main.go
+go run examples/agents/main.go
+```
 
 ## Development
 
@@ -695,6 +876,7 @@ This SDK follows the service-oriented architecture pattern established by [googl
 - **GatewaysService** - All gateway-related operations
 - **ServersService** - All server-related operations and associations
 - **PromptsService** - All prompt management operations
+- **AgentsService** - All A2A agent operations, invocation, and performance tracking
 
 ### Custom Types
 

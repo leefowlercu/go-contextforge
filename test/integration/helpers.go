@@ -26,6 +26,7 @@ const (
 	testGatewayNamePrefix  = "test-gateway"
 	testResourceNamePrefix = "test-resource"
 	testServerNamePrefix   = "test-server"
+	testAgentNamePrefix    = "test-agent"
 )
 
 // skipIfNotIntegration skips the test if INTEGRATION_TESTS is not set to "true"
@@ -534,5 +535,90 @@ func cleanupPrompts(t *testing.T, client *contextforge.Client, promptIDs []int) 
 
 	for _, promptID := range promptIDs {
 		cleanupPrompt(t, client, promptID)
+	}
+}
+
+// randomAgentName generates a unique agent name for testing
+func randomAgentName() string {
+	return fmt.Sprintf("%s-%d", testAgentNamePrefix, time.Now().UnixNano())
+}
+
+// minimalAgentInput returns a minimal valid agent input for testing
+func minimalAgentInput() *contextforge.AgentCreate {
+	return &contextforge.AgentCreate{
+		Name:        randomAgentName(),
+		EndpointURL: "https://example.com/a2a/agent",
+		Description: contextforge.String("A test agent for integration testing"),
+	}
+}
+
+// completeAgentInput returns an agent input with all optional fields for testing
+func completeAgentInput() *contextforge.AgentCreate {
+	return &contextforge.AgentCreate{
+		Name:            randomAgentName(),
+		EndpointURL:     "https://example.com/a2a/complete-agent",
+		Description:     contextforge.String("A complete test agent with all fields"),
+		AgentType:       "custom",
+		ProtocolVersion: "1.0",
+		Capabilities: map[string]any{
+			"streaming": true,
+			"async":     false,
+		},
+		Config: map[string]any{
+			"timeout": 30,
+			"retries": 3,
+		},
+		AuthType:   contextforge.String("bearer"),
+		AuthValue:  contextforge.String("test-token-123"),
+		Tags:       []string{"test", "integration"},
+		Visibility: contextforge.String("public"),
+	}
+}
+
+// createTestAgent creates a test agent and registers it for cleanup
+func createTestAgent(t *testing.T, client *contextforge.Client, name string) *contextforge.Agent {
+	t.Helper()
+
+	agent := &contextforge.AgentCreate{
+		Name:        name,
+		EndpointURL: fmt.Sprintf("https://example.com/a2a/%s", name),
+		Description: contextforge.String("Test agent created by integration test"),
+	}
+
+	ctx := context.Background()
+	created, _, err := client.Agents.Create(ctx, agent, nil)
+	if err != nil {
+		t.Fatalf("Failed to create test agent: %v", err)
+	}
+
+	t.Logf("Created test agent: %s (ID: %s)", created.Name, created.ID)
+
+	// Register cleanup
+	t.Cleanup(func() {
+		cleanupAgent(t, client, created.ID)
+	})
+
+	return created
+}
+
+// cleanupAgent deletes an agent by ID (ignores errors for cleanup)
+func cleanupAgent(t *testing.T, client *contextforge.Client, agentID string) {
+	t.Helper()
+
+	ctx := context.Background()
+	_, err := client.Agents.Delete(ctx, agentID)
+	if err != nil {
+		t.Logf("Warning: Failed to cleanup agent %s: %v (may already be deleted)", agentID, err)
+	} else {
+		t.Logf("Cleaned up agent: %s", agentID)
+	}
+}
+
+// cleanupAgents deletes multiple agents by ID (ignores errors for cleanup)
+func cleanupAgents(t *testing.T, client *contextforge.Client, agentIDs []string) {
+	t.Helper()
+
+	for _, agentID := range agentIDs {
+		cleanupAgent(t, client, agentID)
 	}
 }

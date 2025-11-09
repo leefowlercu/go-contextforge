@@ -111,6 +111,7 @@ type Client struct {
 	Gateways  *GatewaysService
 	Servers   *ServersService
 	Prompts   *PromptsService
+	Agents    *AgentsService
 
 	// Rate limit tracking
 	rateMu     sync.Mutex
@@ -141,6 +142,10 @@ type ServersService service
 // PromptsService handles communication with the prompt related
 // methods of the ContextForge API.
 type PromptsService service
+
+// AgentsService handles communication with the A2A agent related
+// methods of the ContextForge API.
+type AgentsService service
 
 // Response wraps the standard http.Response and provides convenient access to
 // pagination and rate limit information.
@@ -632,4 +637,140 @@ type PromptListOptions struct {
 type PromptCreateOptions struct {
 	TeamID     *string
 	Visibility *string
+}
+
+// Agent represents an A2A (Agent-to-Agent) agent in the ContextForge API.
+// A2A agents enable inter-agent communication using the ContextForge A2A protocol.
+type Agent struct {
+	// Core fields
+	ID              string         `json:"id"`
+	Name            string         `json:"name"`
+	Slug            string         `json:"slug"`
+	Description     *string        `json:"description,omitempty"`
+	EndpointURL     string         `json:"endpointUrl"`
+	AgentType       string         `json:"agentType"`
+	ProtocolVersion string         `json:"protocolVersion"`
+	Capabilities    map[string]any `json:"capabilities,omitempty"`
+	Config          map[string]any `json:"config,omitempty"`
+	AuthType        *string        `json:"authType,omitempty"`
+	Enabled         bool           `json:"enabled"`
+	Reachable       bool           `json:"reachable"`
+
+	// Timestamps
+	CreatedAt       *Timestamp `json:"createdAt,omitempty"`
+	UpdatedAt       *Timestamp `json:"updatedAt,omitempty"`
+	LastInteraction *Timestamp `json:"lastInteraction,omitempty"`
+
+	// Organizational fields
+	Tags       []string       `json:"tags,omitempty"`
+	Metrics    *AgentMetrics  `json:"metrics,omitempty"`
+	TeamID     *string        `json:"teamId,omitempty"`
+	OwnerEmail *string        `json:"ownerEmail,omitempty"`
+	Visibility *string        `json:"visibility,omitempty"`
+
+	// Metadata fields (read-only)
+	CreatedBy         *string `json:"createdBy,omitempty"`
+	CreatedFromIP     *string `json:"createdFromIp,omitempty"`
+	CreatedVia        *string `json:"createdVia,omitempty"`
+	CreatedUserAgent  *string `json:"createdUserAgent,omitempty"`
+	ModifiedBy        *string `json:"modifiedBy,omitempty"`
+	ModifiedFromIP    *string `json:"modifiedFromIp,omitempty"`
+	ModifiedVia       *string `json:"modifiedVia,omitempty"`
+	ModifiedUserAgent *string `json:"modifiedUserAgent,omitempty"`
+	ImportBatchID     *string `json:"importBatchId,omitempty"`
+	FederationSource  *string `json:"federationSource,omitempty"`
+	Version           *int    `json:"version,omitempty"`
+}
+
+// AgentMetrics represents performance statistics for an agent.
+type AgentMetrics struct {
+	TotalExecutions      int        `json:"totalExecutions"`
+	SuccessfulExecutions int        `json:"successfulExecutions"`
+	FailedExecutions     int        `json:"failedExecutions"`
+	FailureRate          float64    `json:"failureRate"`
+	MinResponseTime      *float64   `json:"minResponseTime,omitempty"`
+	MaxResponseTime      *float64   `json:"maxResponseTime,omitempty"`
+	AvgResponseTime      *float64   `json:"avgResponseTime,omitempty"`
+	LastExecutionTime    *Timestamp `json:"lastExecutionTime,omitempty"`
+}
+
+// AgentCreate represents the request body for creating an A2A agent.
+// Note: Uses snake_case field names as required by the API.
+type AgentCreate struct {
+	// Required fields
+	Name        string `json:"name"`
+	EndpointURL string `json:"endpoint_url"`
+
+	// Optional core fields
+	Slug            *string        `json:"slug,omitempty"`
+	Description     *string        `json:"description,omitempty"`
+	AgentType       string         `json:"agent_type,omitempty"`       // default: "generic"
+	ProtocolVersion string         `json:"protocol_version,omitempty"` // default: "1.0"
+	Capabilities    map[string]any `json:"capabilities,omitempty"`
+	Config          map[string]any `json:"config,omitempty"`
+
+	// Authentication fields
+	AuthType  *string `json:"auth_type,omitempty"`
+	AuthValue *string `json:"auth_value,omitempty"` // Will be encrypted by API
+
+	// Organizational fields (snake_case)
+	Tags       []string `json:"tags,omitempty"`
+	TeamID     *string  `json:"team_id,omitempty"`
+	OwnerEmail *string  `json:"owner_email,omitempty"`
+	Visibility *string  `json:"visibility,omitempty"` // default: "public"
+}
+
+// AgentUpdate represents the request body for updating an agent.
+// Note: Uses camelCase field names as required by the API.
+type AgentUpdate struct {
+	// All fields optional (camelCase per API spec)
+	Name            *string        `json:"name,omitempty"`
+	Description     *string        `json:"description,omitempty"`
+	EndpointURL     *string        `json:"endpointUrl,omitempty"`
+	AgentType       *string        `json:"agentType,omitempty"`
+	ProtocolVersion *string        `json:"protocolVersion,omitempty"`
+	Capabilities    map[string]any `json:"capabilities,omitempty"`
+	Config          map[string]any `json:"config,omitempty"`
+	AuthType        *string        `json:"authType,omitempty"`
+	AuthValue       *string        `json:"authValue,omitempty"`
+	Tags            []string       `json:"tags,omitempty"`
+	TeamID          *string        `json:"teamId,omitempty"`
+	OwnerEmail      *string        `json:"ownerEmail,omitempty"`
+	Visibility      *string        `json:"visibility,omitempty"`
+}
+
+// AgentListOptions specifies the optional parameters to the
+// AgentsService.List method.
+// Note: Agents use skip/limit (offset-based) pagination instead of cursor-based.
+type AgentListOptions struct {
+	// Skip specifies the number of items to skip (offset)
+	Skip int `url:"skip,omitempty"`
+
+	// Limit specifies the maximum number of items to return (max: 1000, default: 100)
+	Limit int `url:"limit,omitempty"`
+
+	// IncludeInactive includes inactive agents in the results
+	IncludeInactive bool `url:"include_inactive,omitempty"`
+
+	// Tags filters agents by tags (comma-separated)
+	Tags string `url:"tags,omitempty"`
+
+	// TeamID filters agents by team ID
+	TeamID string `url:"team_id,omitempty"`
+
+	// Visibility filters agents by visibility (public, private, etc.)
+	Visibility string `url:"visibility,omitempty"`
+}
+
+// AgentCreateOptions specifies additional options for creating an agent.
+// These fields are placed at the top level of the request wrapper.
+type AgentCreateOptions struct {
+	TeamID     *string
+	Visibility *string
+}
+
+// AgentInvokeRequest represents the request body for invoking an A2A agent.
+type AgentInvokeRequest struct {
+	Parameters      map[string]any `json:"parameters,omitempty"`
+	InteractionType string         `json:"interaction_type,omitempty"` // default: "query"
 }

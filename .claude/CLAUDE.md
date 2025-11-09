@@ -299,7 +299,7 @@ When implementing new services for additional ContextForge API resources:
 1. Create service file: `contextforge/<service>.go`
 2. Define service struct: `type <Service>Service service`
 3. Add service field to `Client` struct in `types.go`
-4. Initialize service in `NewClient()` in `contextforge.go`: `c.<Service> = (*<Service>Service)(&c.common.service)`
+4. Initialize service in `newClient()` in `contextforge.go`: `c.<Service> = (*<Service>Service)(&c.common)`
 5. Implement service methods with signature: `(ctx context.Context, ...) (*ReturnType, *Response, error)`
 6. Add unit tests in `contextforge/<service>_test.go`
 7. Add integration tests in `test/integration/<service>_integration_test.go`
