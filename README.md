@@ -948,10 +948,10 @@ This SDK follows the service-oriented architecture pattern established by [googl
 
 ### Upstream ContextForge API Bugs
 
-The SDK integration tests have identified three bugs in ContextForge v0.8.0 that affect the Prompts API. These bugs are in the upstream API, not the SDK implementation. The affected integration tests are currently skipped and will be re-enabled once the upstream bugs are fixed.
+The SDK integration and unit tests have identified three bugs in ContextForge v0.8.0 that affect the Prompts and Resources APIs. These bugs are in the upstream API, not the SDK implementation. The affected tests are currently skipped and will be re-enabled once the upstream bugs are fixed.
 
-**CONTEXTFORGE-001: Prompts Toggle Returns Stale State**
-The `POST /prompts/{id}/toggle` endpoint returns stale `isActive` state in responses despite correctly updating the database. See [`docs/upstream-bugs/prompt-toggle.md`](docs/upstream-bugs/prompt-toggle.md) for details.
+**CONTEXTFORGE-001: Toggle Endpoints Return Stale State**
+The `POST /prompts/{id}/toggle` and `POST /resources/{id}/toggle` endpoints return stale `isActive` state in responses despite correctly updating the database. See [`docs/upstream-bugs/prompt-toggle.md`](docs/upstream-bugs/prompt-toggle.md) for details.
 
 **CONTEXTFORGE-002: Prompts API Accepts Empty Template Field**
 The `POST /prompts` endpoint accepts prompt creation without the `template` field, allowing semantically invalid prompts. See [`docs/upstream-bugs/prompt-validation-missing-template.md`](docs/upstream-bugs/prompt-validation-missing-template.md) for details.
