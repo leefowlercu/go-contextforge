@@ -20,7 +20,8 @@ echo "🔧 Starting Context Forge gateway..."
 
 # Clean up old database to ensure fresh state
 echo "🗑️  Cleaning up old database files..."
-rm -rfv /tmp/contextforge-test.db* || true
+rm -rfv "$PROJECT_ROOT/tmp" || true
+mkdir -p "$PROJECT_ROOT/tmp"
 echo "✓ Database cleanup complete"
 
 # Change to project root to ensure database is created in the right place
@@ -44,9 +45,9 @@ export JWT_SECRET_KEY="test-secret-key-for-integration-testing"
 export SECURE_COOKIES=false
 
 # Start gateway in background
-uvx --from mcp-contextforge-gateway mcpgateway --host 0.0.0.0 --port 8000 > /tmp/contextforge-test.log 2>&1 &
+uvx --from mcp-contextforge-gateway mcpgateway --host 0.0.0.0 --port 8000 > "$PROJECT_ROOT/tmp/contextforge-test.log" 2>&1 &
 GATEWAY_PID=$!
-echo $GATEWAY_PID > /tmp/contextforge-test.pid
+echo $GATEWAY_PID > "$PROJECT_ROOT/tmp/contextforge-test.pid"
 
 echo "⏳ Waiting for Context Forge to be ready..."
 
@@ -58,7 +59,7 @@ until curl -f http://localhost:8000/health > /dev/null 2>&1; do
   RETRY_COUNT=$((RETRY_COUNT + 1))
   if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
     echo "❌ Context Forge failed to start within timeout"
-    cat /tmp/contextforge-test.log
+    cat "$PROJECT_ROOT/tmp/contextforge-test.log"
     kill $GATEWAY_PID 2>/dev/null || true
     exit 1
   fi
@@ -74,17 +75,17 @@ echo "🔑 Generating JWT token for integration tests..."
 uvx --from mcp-contextforge-gateway python3 -m mcpgateway.utils.create_jwt_token \
   --username admin@test.local \
   --exp 10080 \
-  --secret test-secret-key-for-integration-testing > /tmp/contextforge-test-token.txt 2>&1
+  --secret test-secret-key-for-integration-testing > "$PROJECT_ROOT/tmp/contextforge-test-token.txt" 2>&1
 
 if [ $? -eq 0 ]; then
   # Extract just the token (remove any extra output)
-  TOKEN=$(cat /tmp/contextforge-test-token.txt | grep -o 'eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*' || cat /tmp/contextforge-test-token.txt)
-  echo "$TOKEN" > /tmp/contextforge-test-token.txt
+  TOKEN=$(cat "$PROJECT_ROOT/tmp/contextforge-test-token.txt" | grep -o 'eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*' || cat "$PROJECT_ROOT/tmp/contextforge-test-token.txt")
+  echo "$TOKEN" > "$PROJECT_ROOT/tmp/contextforge-test-token.txt"
   export CONTEXTFORGE_TEST_TOKEN="$TOKEN"
   echo "✅ JWT token generated successfully"
 else
   echo "⚠️  Failed to generate JWT token, tests may fail"
-  cat /tmp/contextforge-test-token.txt
+  cat "$PROJECT_ROOT/tmp/contextforge-test-token.txt"
 fi
 echo ""
 
@@ -93,7 +94,7 @@ echo "   Endpoint: http://localhost:8000"
 echo "   Admin Email: admin@test.local"
 echo "   Admin Password: testpassword123"
 echo "   PID: $GATEWAY_PID"
-echo "   Token File: /tmp/contextforge-test-token.txt"
+echo "   Token File: $PROJECT_ROOT/tmp/contextforge-test-token.txt"
 echo ""
 
 # Get version info
