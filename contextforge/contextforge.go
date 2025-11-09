@@ -15,24 +15,18 @@ import (
 )
 
 const (
-	defaultBaseURL = "http://localhost:8000/"
-	userAgent      = "go-contextforge/v" + Version
-	mediaTypeJSON  = "application/json"
+	// SuggestedBaseURL is the default base URL for a locally-running ContextForge instance.
+	// Users should provide their own base URL when creating clients.
+	SuggestedBaseURL = "http://localhost:8000/"
+	userAgent        = "go-contextforge/v" + Version
+	mediaTypeJSON    = "application/json"
 )
 
-// NewClient returns a new ContextForge API client. If a nil httpClient is
-// provided, a new http.Client will be used. The bearerToken parameter is required
-// for API authentication and should be a valid JWT token.
-func NewClient(httpClient *http.Client, bearerToken string) *Client {
-	baseURL, _ := url.Parse(defaultBaseURL)
-	return newClient(httpClient, baseURL, bearerToken)
-}
-
-// NewClientWithBaseURL returns a new ContextForge API client with a custom base URL.
+// NewClient returns a new ContextForge API client with the specified base URL.
 // If a nil httpClient is provided, a new http.Client will be used. The bearerToken
 // parameter is required for API authentication and should be a valid JWT token.
-// The baseURL must have a trailing slash.
-func NewClientWithBaseURL(httpClient *http.Client, baseURL string, bearerToken string) (*Client, error) {
+// The baseURL parameter must be a valid URL; a trailing slash will be added automatically if missing.
+func NewClient(httpClient *http.Client, baseURL string, bearerToken string) (*Client, error) {
 	if !strings.HasSuffix(baseURL, "/") {
 		baseURL = baseURL + "/"
 	}

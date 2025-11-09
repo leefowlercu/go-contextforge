@@ -45,11 +45,11 @@ The SDK follows the **service-oriented architecture pattern** established by `go
 ### Key Components
 
 **Client Management** (`contextforge/contextforge.go`):
-- `NewClient(httpClient, bearerToken)`: Factory for authenticated clients with default base URL
-- `NewClientWithBaseURL(httpClient, baseURL, bearerToken)`: Factory for authenticated clients with custom base URL (returns `*Client, error`)
+- `NewClient(httpClient, baseURL, bearerToken)`: Factory for authenticated clients (returns `*Client, error`)
   - Accepts baseURL as string parameter (e.g., `"https://api.example.com/"`)
   - Automatically appends trailing slash if missing
   - Returns error for invalid URL formats
+  - `SuggestedBaseURL` constant provides default URL for local development (`http://localhost:8000/`)
 - `NewRequest()`: Creates HTTP requests with proper headers and authentication
 - `Do()`: Executes requests with context support, error handling, and rate limit tracking
 - Thread-safe rate limit tracking using `sync.Mutex` and `rateLimits` map

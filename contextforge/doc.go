@@ -28,7 +28,10 @@
 // The ContextForge API uses Bearer token (JWT) authentication. You must provide
 // a valid JWT token when creating the client:
 //
-//	client := contextforge.NewClient(nil, "your-jwt-token")
+//	client, err := contextforge.NewClient(nil, "http://localhost:8000/", "your-jwt-token")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
 //
 // # Usage
 //
@@ -36,13 +39,16 @@
 //
 //	import "github.com/leefowlercu/go-contextforge/contextforge"
 //
-// Create a new client with default base URL (http://localhost:8000/):
+// Create a new client (use SuggestedBaseURL for local development):
 //
-//	client := contextforge.NewClient(nil, "your-jwt-token")
+//	client, err := contextforge.NewClient(nil, contextforge.SuggestedBaseURL, "your-jwt-token")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
 //
 // Create a client with custom base URL:
 //
-//	client, err := contextforge.NewClientWithBaseURL(nil, "https://contextforge.example.com/", "your-jwt-token")
+//	client, err := contextforge.NewClient(nil, "https://contextforge.example.com/", "your-jwt-token")
 //	if err != nil {
 //		log.Fatal(err)
 //	}
@@ -52,7 +58,10 @@
 //	httpClient := &http.Client{
 //		Timeout: 60 * time.Second,
 //	}
-//	client := contextforge.NewClient(httpClient, "your-jwt-token")
+//	client, err := contextforge.NewClient(httpClient, contextforge.SuggestedBaseURL, "your-jwt-token")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
 //
 // List tools:
 //

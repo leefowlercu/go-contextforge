@@ -26,7 +26,7 @@ func main() {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	fmt.Println("=== ContextForge SDK - Resources Service Example ===\n")
+	fmt.Println("=== ContextForge SDK - Resources Service ===")
 
 	// Step 1: Authentication
 	fmt.Println("1. Authenticating...")
@@ -36,7 +36,7 @@ func main() {
 	// Step 2: Create client
 	// To use a real ContextForge instance, replace server.URL with:
 	// "https://your-contextforge-instance.com"
-	client, err := contextforge.NewClientWithBaseURL(nil, server.URL, token)
+	client, err := contextforge.NewClient(nil, server.URL, token)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}

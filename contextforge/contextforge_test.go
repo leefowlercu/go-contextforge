@@ -11,45 +11,6 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	c := NewClient(nil, "test-token")
-
-	if c == nil {
-		t.Fatal("NewClient() returned nil")
-	}
-
-	if c.BaseURL == nil || c.BaseURL.String() != defaultBaseURL {
-		t.Errorf("NewClient() BaseURL = %v, want %v", c.BaseURL, defaultBaseURL)
-	}
-
-	if c.UserAgent != userAgent {
-		t.Errorf("NewClient() UserAgent = %q, want %q", c.UserAgent, userAgent)
-	}
-
-	if c.BearerToken != "test-token" {
-		t.Errorf("NewClient() BearerToken = %q, want %q", c.BearerToken, "test-token")
-	}
-
-	if c.Tools == nil {
-		t.Error("NewClient() Tools service is nil")
-	}
-
-	if c.Resources == nil {
-		t.Error("NewClient() Resources service is nil")
-	}
-}
-
-func TestNewClient_CustomHTTPClient(t *testing.T) {
-	httpClient := &http.Client{
-		Timeout: 60 * time.Second,
-	}
-	c := NewClient(httpClient, "test-token")
-
-	if c.client != httpClient {
-		t.Error("NewClient() did not use provided HTTP client")
-	}
-}
-
-func TestNewClientWithBaseURL(t *testing.T) {
 	tests := []struct {
 		name        string
 		baseURL     string
@@ -104,72 +65,75 @@ func TestNewClientWithBaseURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c, err := NewClientWithBaseURL(nil, tt.baseURL, tt.bearerToken)
+			c, err := NewClient(nil, tt.baseURL, tt.bearerToken)
 
 			if tt.wantErr {
 				if err == nil {
-					t.Error("NewClientWithBaseURL() expected error, got nil")
+					t.Error("NewClient() expected error, got nil")
 					return
 				}
 				if !strings.Contains(err.Error(), tt.wantErrMsg) {
-					t.Errorf("NewClientWithBaseURL() error = %q, want to contain %q", err.Error(), tt.wantErrMsg)
+					t.Errorf("NewClient() error = %q, want to contain %q", err.Error(), tt.wantErrMsg)
 				}
 				return
 			}
 
 			if err != nil {
-				t.Errorf("NewClientWithBaseURL() unexpected error: %v", err)
+				t.Errorf("NewClient() unexpected error: %v", err)
 				return
 			}
 
 			if c == nil {
-				t.Fatal("NewClientWithBaseURL() returned nil client")
+				t.Fatal("NewClient() returned nil client")
 			}
 
 			if c.BaseURL.String() != tt.wantBaseURL {
-				t.Errorf("NewClientWithBaseURL() BaseURL = %q, want %q", c.BaseURL.String(), tt.wantBaseURL)
+				t.Errorf("NewClient() BaseURL = %q, want %q", c.BaseURL.String(), tt.wantBaseURL)
 			}
 
 			if c.BearerToken != tt.bearerToken {
-				t.Errorf("NewClientWithBaseURL() BearerToken = %q, want %q", c.BearerToken, tt.bearerToken)
+				t.Errorf("NewClient() BearerToken = %q, want %q", c.BearerToken, tt.bearerToken)
 			}
 
 			if c.UserAgent != userAgent {
-				t.Errorf("NewClientWithBaseURL() UserAgent = %q, want %q", c.UserAgent, userAgent)
+				t.Errorf("NewClient() UserAgent = %q, want %q", c.UserAgent, userAgent)
 			}
 
 			if c.Tools == nil {
-				t.Error("NewClientWithBaseURL() Tools service is nil")
+				t.Error("NewClient() Tools service is nil")
 			}
 
 			if c.Resources == nil {
-				t.Error("NewClientWithBaseURL() Resources service is nil")
+				t.Error("NewClient() Resources service is nil")
 			}
 
 			if c.Gateways == nil {
-				t.Error("NewClientWithBaseURL() Gateways service is nil")
+				t.Error("NewClient() Gateways service is nil")
 			}
 		})
 	}
 }
 
-func TestNewClientWithBaseURL_CustomHTTPClient(t *testing.T) {
+func TestNewClient_CustomHTTPClient(t *testing.T) {
 	httpClient := &http.Client{
 		Timeout: 60 * time.Second,
 	}
-	c, err := NewClientWithBaseURL(httpClient, "https://api.example.com/", "test-token")
+	c, err := NewClient(httpClient, "https://api.example.com/", "test-token")
 
 	if err != nil {
-		t.Errorf("NewClientWithBaseURL() unexpected error: %v", err)
+		t.Fatalf("NewClient() unexpected error: %v", err)
 	}
 
 	if c.client != httpClient {
-		t.Error("NewClientWithBaseURL() did not use provided HTTP client")
+		t.Error("NewClient() did not use provided HTTP client")
 	}
 }
 
 func TestNewRequest(t *testing.T) {
-	c := NewClient(nil, "test-token")
+	c, err := NewClient(nil, "http://localhost:8000/", "test-token")
+	if err != nil {
+		t.Fatalf("NewClient() error: %v", err)
+	}
 
 	tests := []struct {
 		name        string
@@ -270,13 +234,16 @@ func TestNewRequest(t *testing.T) {
 }
 
 func TestNewRequest_BadJSON(t *testing.T) {
-	c := NewClient(nil, "test-token")
+	c, err := NewClient(nil, "http://localhost:8000/", "test-token")
+	if err != nil {
+		t.Fatalf("NewClient() error: %v", err)
+	}
 
 	type InvalidJSON struct {
 		BadField chan int
 	}
 
-	_, err := c.NewRequest("POST", "tools", &InvalidJSON{BadField: make(chan int)})
+	_, err = c.NewRequest("POST", "tools", &InvalidJSON{BadField: make(chan int)})
 	if err == nil {
 		t.Error("NewRequest() expected JSON encoding error, got nil")
 	}
@@ -396,9 +363,10 @@ func TestDo(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := NewClient(nil, "test-token")
-	baseURL, _ := url.Parse(server.URL + "/")
-	c.BaseURL = baseURL
+	c, err := NewClient(nil, server.URL+"/", "test-token")
+	if err != nil {
+		t.Fatalf("NewClient() error: %v", err)
+	}
 
 	req, _ := c.NewRequest("GET", "tools", nil)
 
@@ -423,10 +391,13 @@ func TestDo(t *testing.T) {
 }
 
 func TestDo_NilContext(t *testing.T) {
-	c := NewClient(nil, "test-token")
+	c, err := NewClient(nil, "http://localhost:8000/", "test-token")
+	if err != nil {
+		t.Fatalf("NewClient() error: %v", err)
+	}
 	req, _ := c.NewRequest("GET", "tools", nil)
 
-	_, err := c.Do(nil, req, nil)
+	_, err = c.Do(nil, req, nil)
 
 	if err == nil {
 		t.Error("Do() with nil context expected error, got nil")

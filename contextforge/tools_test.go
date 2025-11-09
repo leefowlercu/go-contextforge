@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 )
 
@@ -14,9 +13,11 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 	mux = http.NewServeMux()
 	server := httptest.NewServer(mux)
 
-	client = NewClient(nil, "test-token")
-	url, _ := url.Parse(server.URL + "/")
-	client.BaseURL = url
+	var err error
+	client, err = NewClient(nil, server.URL+"/", "test-token")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create client: %v", err))
+	}
 
 	return client, mux, server.URL, server.Close
 }

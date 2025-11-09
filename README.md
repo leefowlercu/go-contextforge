@@ -78,8 +78,11 @@ import (
 )
 
 func main() {
-    // Create a client with bearer token
-    client := contextforge.NewClient(nil, "your-jwt-token")
+    // Create a client with base URL and bearer token
+    client, err := contextforge.NewClient(nil, "http://localhost:8000/", "your-jwt-token")
+    if err != nil {
+        log.Fatal(err)
+    }
     ctx := context.Background()
 
     // List tools
@@ -115,11 +118,15 @@ import (
     "github.com/leefowlercu/go-contextforge/contextforge"
 )
 
-// Client with default base URL (http://localhost:8000/)
-client := contextforge.NewClient(nil, "your-jwt-token")
+// Create a client with bearer token
+// Note: contextforge.SuggestedBaseURL = "http://localhost:8000/"
+client, err := contextforge.NewClient(nil, contextforge.SuggestedBaseURL, "your-jwt-token")
+if err != nil {
+    log.Fatal(err)
+}
 
 // Client with custom base URL
-client, err := contextforge.NewClientWithBaseURL(nil, "https://contextforge.example.com/", "your-jwt-token")
+client, err := contextforge.NewClient(nil, "https://contextforge.example.com/", "your-jwt-token")
 if err != nil {
     log.Fatal(err)
 }
@@ -128,15 +135,18 @@ if err != nil {
 httpClient := &http.Client{
     Timeout: 60 * time.Second,
 }
-client = contextforge.NewClient(httpClient, "your-jwt-token")
-
-// Custom HTTP client with custom base URL
-client, err = contextforge.NewClientWithBaseURL(httpClient, "https://contextforge.example.com/", "your-jwt-token")
+client, err := contextforge.NewClient(httpClient, contextforge.SuggestedBaseURL, "your-jwt-token")
 if err != nil {
     log.Fatal(err)
 }
 
-// Note: NewClientWithBaseURL automatically adds trailing slash if missing
+// Custom HTTP client with custom base URL
+client, err = contextforge.NewClient(httpClient, "https://contextforge.example.com/", "your-jwt-token")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Note: NewClient automatically adds trailing slash if missing
 ```
 
 ### Pointer Helpers

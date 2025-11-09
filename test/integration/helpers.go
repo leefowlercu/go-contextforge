@@ -113,15 +113,12 @@ func setupClient(t *testing.T) *contextforge.Client {
 	skipIfNotIntegration(t)
 
 	token := getTestToken(t)
-	client := contextforge.NewClient(nil, token)
-
-	baseURL, err := url.Parse(getBaseURL())
+	client, err := contextforge.NewClient(nil, getBaseURL(), token)
 	if err != nil {
-		t.Fatalf("Failed to parse base URL: %v", err)
+		t.Fatalf("Failed to create client: %v", err)
 	}
-	client.BaseURL = baseURL
 
-	t.Logf("Created ContextForge client with base URL: %s", baseURL.String())
+	t.Logf("Created ContextForge client with base URL: %s", client.BaseURL.String())
 	return client
 }
 

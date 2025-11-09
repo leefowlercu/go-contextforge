@@ -22,13 +22,14 @@ func TestClient_Authentication(t *testing.T) {
 			t.Fatal("Expected non-empty JWT token")
 		}
 
-		client := contextforge.NewClient(nil, token)
-		baseURL, _ := url.Parse(getBaseURL())
-		client.BaseURL = baseURL
+		client, err := contextforge.NewClient(nil, getBaseURL(), token)
+		if err != nil {
+			t.Fatalf("Failed to create client: %v", err)
+		}
 
 		// Test that the token works by making a simple API call
 		ctx := context.Background()
-		_, _, err := client.Tools.List(ctx, nil)
+		_, _, err = client.Tools.List(ctx, nil)
 		if err != nil {
 			t.Errorf("Expected successful API call with valid token, got error: %v", err)
 		}
@@ -41,12 +42,13 @@ func TestClient_Authentication(t *testing.T) {
 	})
 
 	t.Run("request without token", func(t *testing.T) {
-		client := contextforge.NewClient(nil, "") // No token
-		baseURL, _ := url.Parse(getBaseURL())
-		client.BaseURL = baseURL
+		client, err := contextforge.NewClient(nil, getBaseURL(), "") // No token
+		if err != nil {
+			t.Fatalf("Failed to create client: %v", err)
+		}
 
 		ctx := context.Background()
-		_, _, err := client.Tools.List(ctx, nil)
+		_, _, err = client.Tools.List(ctx, nil)
 		if err == nil {
 			t.Error("Expected error when making request without token")
 		}
@@ -62,12 +64,13 @@ func TestClient_Authentication(t *testing.T) {
 	})
 
 	t.Run("request with invalid token", func(t *testing.T) {
-		client := contextforge.NewClient(nil, "invalid-token-12345")
-		baseURL, _ := url.Parse(getBaseURL())
-		client.BaseURL = baseURL
+		client, err := contextforge.NewClient(nil, getBaseURL(), "invalid-token-12345")
+		if err != nil {
+			t.Fatalf("Failed to create client: %v", err)
+		}
 
 		ctx := context.Background()
-		_, _, err := client.Tools.List(ctx, nil)
+		_, _, err = client.Tools.List(ctx, nil)
 		if err == nil {
 			t.Error("Expected error when making request with invalid token")
 		}
