@@ -535,6 +535,112 @@ _, err = client.Agents.Delete(ctx, "agent-id")
 - **Dual states**: Agents have both `Enabled` (user-controlled) and `Reachable` (system status) states
 - **Performance metrics**: Agents track execution metrics including success/failure rates and response times
 
+### Managing Teams
+
+Teams enable collaborative resource management and access control. Team operations support member management, invitations, and team discovery:
+
+```go
+ctx := context.Background()
+
+// List teams with skip/limit pagination (not cursor-based)
+teams, _, err := client.Teams.List(ctx, &contextforge.TeamListOptions{
+    Skip:  0,
+    Limit: 20,
+})
+
+// Get team by ID
+team, _, err := client.Teams.Get(ctx, "team-id")
+
+// Create a basic team
+newTeam := &contextforge.TeamCreate{
+    Name:        "engineering",
+    Description: contextforge.String("Engineering team for product development"),
+}
+created, _, err := client.Teams.Create(ctx, newTeam)
+
+// Create a team with all options
+completeTeam := &contextforge.TeamCreate{
+    Name:        "design",
+    Slug:        contextforge.String("design-team"), // Always auto-generated from name (API ignores user value)
+    Description: contextforge.String("Design team for UI/UX"),
+    Visibility:  contextforge.String("public"),      // "private" (default) | "public"
+    MaxMembers:  contextforge.Int(50),
+}
+created, _, err = client.Teams.Create(ctx, completeTeam)
+
+// Update team
+update := &contextforge.TeamUpdate{
+    Description: contextforge.String("Updated description"),
+    Visibility:  contextforge.String("public"),
+    MaxMembers:  contextforge.Int(100),
+}
+updated, _, err := client.Teams.Update(ctx, "team-id", update)
+
+// Delete team
+_, err = client.Teams.Delete(ctx, "team-id")
+
+// List team members
+members, _, err := client.Teams.ListMembers(ctx, "team-id")
+
+// Update member role (uses email as identifier)
+memberUpdate := &contextforge.TeamMemberUpdate{
+    Role: "owner", // "owner" | "member"
+}
+member, _, err := client.Teams.UpdateMember(ctx, "team-id", "user@example.com", memberUpdate)
+
+// Remove member (uses email as identifier)
+_, err = client.Teams.RemoveMember(ctx, "team-id", "user@example.com")
+
+// Invite a new member
+invite := &contextforge.TeamInvite{
+    Email: "newuser@example.com",
+    Role:  contextforge.String("member"), // Optional, defaults to "member"
+}
+invitation, _, err := client.Teams.InviteMember(ctx, "team-id", invite)
+
+// List team invitations
+invitations, _, err := client.Teams.ListInvitations(ctx, "team-id")
+
+// Accept invitation (using token)
+member, _, err := client.Teams.AcceptInvitation(ctx, "invitation-token")
+
+// Cancel invitation
+_, err = client.Teams.CancelInvitation(ctx, "invitation-id")
+
+// Discover public teams
+discoveredTeams, _, err := client.Teams.Discover(ctx, &contextforge.TeamDiscoverOptions{
+    Limit: 10,
+})
+
+// Request to join a public team
+joinRequest, _, err := client.Teams.Join(ctx, "team-id", &contextforge.TeamJoinRequest{
+    Message: contextforge.String("I'd like to contribute to this team"),
+})
+
+// Leave a team
+_, err = client.Teams.Leave(ctx, "team-id")
+
+// List join requests (owners only)
+joinRequests, _, err := client.Teams.ListJoinRequests(ctx, "team-id")
+
+// Approve join request
+member, _, err = client.Teams.ApproveJoinRequest(ctx, "team-id", "request-id")
+
+// Reject join request
+_, err = client.Teams.RejectJoinRequest(ctx, "team-id", "request-id")
+```
+
+**Important Notes:**
+
+- **Pagination**: Teams use skip/limit (offset-based) pagination like Agents
+- **List response**: Returns structured response `{teams: [], total: N}` not just array
+- **No request wrapping**: Unlike tools/resources, team create/update are not wrapped
+- **Slug generation**: Automatically generated from team name if not provided
+- **Member identification**: Member endpoints use email (not ID) as identifier
+- **Invitation tokens**: One-time use tokens with expiration for accepting invitations
+- **Personal teams**: Cannot be deleted or left; special restrictions apply
+- **Last owner protection**: Cannot leave or be demoted if last owner
+
 ### Pagination
 
 ContextForge supports two pagination patterns:
@@ -565,7 +671,7 @@ for {
 }
 ```
 
-**Skip/limit (offset-based) pagination** (Agents only):
+**Skip/limit (offset-based) pagination** (Agents, Teams):
 
 ```go
 opts := &contextforge.AgentListOptions{
@@ -690,6 +796,31 @@ if resp.Rate.Limit > 0 {
 
 **Note:** Agents use skip/limit (offset-based) pagination instead of cursor-based pagination. The Invoke method uses agent name (not ID) as the identifier.
 
+### Teams Service
+
+| Method | Description |
+|--------|-------------|
+| `List(ctx, opts)` | List teams with skip/limit pagination |
+| `Get(ctx, teamID)` | Get team by ID |
+| `Create(ctx, team)` | Create a new team |
+| `Update(ctx, teamID, team)` | Update team |
+| `Delete(ctx, teamID)` | Delete team |
+| `ListMembers(ctx, teamID)` | List team members |
+| `UpdateMember(ctx, teamID, email, update)` | Update member role (uses email) |
+| `RemoveMember(ctx, teamID, email)` | Remove member (uses email) |
+| `InviteMember(ctx, teamID, invite)` | Invite user to team |
+| `ListInvitations(ctx, teamID)` | List team invitations |
+| `AcceptInvitation(ctx, token)` | Accept invitation (uses token) |
+| `CancelInvitation(ctx, invitationID)` | Cancel invitation |
+| `Discover(ctx, opts)` | Discover public teams |
+| `Join(ctx, teamID, req)` | Request to join public team |
+| `Leave(ctx, teamID)` | Leave team |
+| `ListJoinRequests(ctx, teamID)` | List join requests (owners only) |
+| `ApproveJoinRequest(ctx, teamID, reqID)` | Approve join request |
+| `RejectJoinRequest(ctx, teamID, reqID)` | Reject join request |
+
+**Note:** Teams use skip/limit (offset-based) pagination like Agents. List returns structured response `{teams: [], total: N}`. Member operations use email as identifier, not ID.
+
 ## Examples
 
 The SDK includes working example programs demonstrating all service features:
@@ -700,6 +831,7 @@ The SDK includes working example programs demonstrating all service features:
 - **[servers/](examples/servers/)** - Server management and associations
 - **[prompts/](examples/prompts/)** - Prompt templates and arguments
 - **[agents/](examples/agents/)** - A2A agents, invocation, and skip/limit pagination
+- **[teams/](examples/teams/)** - Team management, members, invitations, and discovery
 
 Each example includes a mock HTTP server and demonstrates:
 - Authentication flow
@@ -932,6 +1064,7 @@ This SDK follows the service-oriented architecture pattern established by [googl
 - **ServersService** - All server-related operations and associations
 - **PromptsService** - All prompt management operations
 - **AgentsService** - All A2A agent operations, invocation, and performance tracking
+- **TeamsService** - Team management, members, invitations, and discovery
 
 ### Custom Types
 
@@ -948,18 +1081,27 @@ This SDK follows the service-oriented architecture pattern established by [googl
 
 ### Upstream ContextForge API Bugs
 
-The SDK integration and unit tests have identified three bugs in ContextForge v0.8.0 that affect the Prompts and Resources APIs. These bugs are in the upstream API, not the SDK implementation. The affected tests are currently skipped and will be re-enabled once the upstream bugs are fixed.
+The SDK integration tests have identified six bugs in ContextForge v0.8.0. These bugs are in the upstream API, not the SDK implementation. Affected tests are skipped and will be re-enabled once upstream bugs are fixed.
 
 **CONTEXTFORGE-001: Toggle Endpoints Return Stale State**
-The `POST /prompts/{id}/toggle` and `POST /resources/{id}/toggle` endpoints return stale `isActive` state in responses despite correctly updating the database. See [`docs/upstream-bugs/prompt-toggle.md`](docs/upstream-bugs/prompt-toggle.md) for details.
+The `POST /prompts/{id}/toggle` and `POST /resources/{id}/toggle` endpoints return stale `isActive` state despite correctly updating the database. See [`docs/upstream-bugs/prompt-toggle.md`](docs/upstream-bugs/prompt-toggle.md).
 
 **CONTEXTFORGE-002: Prompts API Accepts Empty Template Field**
-The `POST /prompts` endpoint accepts prompt creation without the `template` field, allowing semantically invalid prompts. See [`docs/upstream-bugs/prompt-validation-missing-template.md`](docs/upstream-bugs/prompt-validation-missing-template.md) for details.
+The `POST /prompts` endpoint accepts prompt creation without the `template` field, allowing semantically invalid prompts. See [`docs/upstream-bugs/prompt-validation-missing-template.md`](docs/upstream-bugs/prompt-validation-missing-template.md).
 
 **CONTEXTFORGE-003: Prompts Toggle Returns 400 Instead of 404**
-The `POST /prompts/{id}/toggle` endpoint returns HTTP 400 for non-existent prompts instead of the expected 404. See [`docs/upstream-bugs/prompt-toggle-error-code.md`](docs/upstream-bugs/prompt-toggle-error-code.md) for details.
+The `POST /prompts/{id}/toggle` endpoint returns HTTP 400 for non-existent prompts instead of 404. See [`docs/upstream-bugs/prompt-toggle-error-code.md`](docs/upstream-bugs/prompt-toggle-error-code.md).
 
-All bug reports include root cause analysis, proposed solutions, and workarounds for SDK users.
+**CONTEXTFORGE-004: Teams Individual Resource Endpoints Reject Valid Authentication**
+Individual team endpoints (`GET/PUT/DELETE /teams/{id}/*`) reject valid JWT tokens with 401 Unauthorized, despite list/create working correctly. See [`docs/upstream-bugs/teams-auth-individual-endpoints.md`](docs/upstream-bugs/teams-auth-individual-endpoints.md).
+
+**CONTEXTFORGE-005: Teams API Ignores User-Provided Slug Field**
+The `POST /teams` endpoint ignores the `slug` field and always auto-generates from team name. See [`docs/upstream-bugs/teams-slug-ignored.md`](docs/upstream-bugs/teams-slug-ignored.md).
+
+**CONTEXTFORGE-006: Teams API Returns 422 Instead of 400 for Validation Errors**
+The `POST /teams` endpoint returns HTTP 422 (Unprocessable Entity) for validation errors instead of 400 (Bad Request). See [`docs/upstream-bugs/teams-validation-error-code.md`](docs/upstream-bugs/teams-validation-error-code.md).
+
+All bug reports include root cause analysis, proposed solutions, and workarounds.
 
 ## License
 
