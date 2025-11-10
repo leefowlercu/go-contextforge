@@ -1,6 +1,6 @@
 # go-contextforge
 
-[![Go Version](https://img.shields.io/badge/go-%3E%3D1.25-blue.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/go-%3E%3D1.25.3-blue.svg)](https://golang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A Go SDK for the [IBM ContextForge MCP Gateway](https://github.com/IBM/mcp-context-forge) - a feature-rich gateway, proxy, and MCP Registry that federates MCP and REST services.
@@ -1085,6 +1085,8 @@ This SDK follows the service-oriented architecture pattern established by [googl
 
 - **ContextForge Repository:** https://github.com/IBM/mcp-context-forge
 - **MCP Protocol:** https://modelcontextprotocol.io/
+- **A2A Protocol Specification:** https://a2a-protocol.org/latest/specification/
+- **A2A Protocol Website:** https://a2aprotocol.ai/
 
 ## Known Issues
 

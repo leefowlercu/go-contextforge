@@ -32,7 +32,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Project Overview
 
-Go SDK for the IBM ContextForge MCP Gateway API, providing idiomatic client library for programmatically managing tools, resources, and gateways.
+Go SDK for the IBM ContextForge MCP Gateway API, providing idiomatic client library for programmatically managing MCP resources and A2A agents.
 
 ## Architecture
 
