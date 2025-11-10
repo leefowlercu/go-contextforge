@@ -197,20 +197,20 @@ func main() {
 
 	fmt.Println("=== Example completed successfully! ===")
 	fmt.Println("\nTo use with a real ContextForge instance:")
-	fmt.Println("1. Replace server.URL with your ContextForge base URL")
+	fmt.Println("1. Replace server.URL with your ContextForge address")
 	fmt.Println("2. Use real authentication credentials")
 	fmt.Println("3. Adjust team IDs and other parameters to match your setup")
 }
 
 // authenticate performs mock authentication and returns a JWT token
-func authenticate(baseURL string) string {
+func authenticate(address string) string {
 	// In a real application, you would:
 	// 1. POST to /auth/login with username/password
 	// 2. Extract the access_token from the response
 	// 3. Use that token for subsequent requests
 	//
 	// For this mock example, we'll simulate the login request
-	loginURL := baseURL + "/auth/login"
+	loginURL := address + "/auth/login"
 	payload := strings.NewReader(`{"email":"admin@example.com","password":"secret"}`)
 
 	resp, err := http.Post(loginURL, "application/json", payload)

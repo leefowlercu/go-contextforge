@@ -94,7 +94,7 @@ import (
 )
 
 func main() {
-    // Create a client with base URL and bearer token
+    // Create a client with address and bearer token
     client, err := contextforge.NewClient(nil, "http://localhost:8000/", "your-jwt-token")
     if err != nil {
         log.Fatal(err)
@@ -134,14 +134,13 @@ import (
     "github.com/leefowlercu/go-contextforge/contextforge"
 )
 
-// Create a client with bearer token
-// Note: contextforge.SuggestedBaseURL = "http://localhost:8000/"
-client, err := contextforge.NewClient(nil, contextforge.SuggestedBaseURL, "your-jwt-token")
+// Create a client with locally hosted ContextForge instance
+client, err := contextforge.NewClient(nil, "http://localhost:8000/", "your-jwt-token")
 if err != nil {
     log.Fatal(err)
 }
 
-// Client with custom base URL
+// Create a client with remote ContextForge instance
 client, err := contextforge.NewClient(nil, "https://contextforge.example.com/", "your-jwt-token")
 if err != nil {
     log.Fatal(err)
@@ -151,12 +150,6 @@ if err != nil {
 httpClient := &http.Client{
     Timeout: 60 * time.Second,
 }
-client, err := contextforge.NewClient(httpClient, contextforge.SuggestedBaseURL, "your-jwt-token")
-if err != nil {
-    log.Fatal(err)
-}
-
-// Custom HTTP client with custom base URL
 client, err = contextforge.NewClient(httpClient, "https://contextforge.example.com/", "your-jwt-token")
 if err != nil {
     log.Fatal(err)
@@ -900,7 +893,7 @@ Integration tests require environment variables:
 export INTEGRATION_TESTS=true
 
 # Optional configuration (defaults shown)
-export CONTEXTFORGE_BASE_URL="http://localhost:8000/"
+export CONTEXTFORGE_ADDR="http://localhost:8000/"
 export CONTEXTFORGE_ADMIN_EMAIL="admin@test.local"
 export CONTEXTFORGE_ADMIN_PASSWORD="testpassword123"
 ```

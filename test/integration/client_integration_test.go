@@ -21,7 +21,7 @@ func TestClient_Authentication(t *testing.T) {
 			t.Fatal("Expected non-empty JWT token")
 		}
 
-		client, err := contextforge.NewClient(nil, getBaseURL(), token)
+		client, err := contextforge.NewClient(nil, getAddress(), token)
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -41,7 +41,7 @@ func TestClient_Authentication(t *testing.T) {
 	})
 
 	t.Run("request without token", func(t *testing.T) {
-		client, err := contextforge.NewClient(nil, getBaseURL(), "") // No token
+		client, err := contextforge.NewClient(nil, getAddress(), "") // No token
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -63,7 +63,7 @@ func TestClient_Authentication(t *testing.T) {
 	})
 
 	t.Run("request with invalid token", func(t *testing.T) {
-		client, err := contextforge.NewClient(nil, getBaseURL(), "invalid-token-12345")
+		client, err := contextforge.NewClient(nil, getAddress(), "invalid-token-12345")
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}

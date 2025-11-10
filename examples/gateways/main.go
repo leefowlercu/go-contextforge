@@ -278,8 +278,8 @@ func main() {
 }
 
 // authenticate performs mock authentication and returns a JWT token
-func authenticate(baseURL string) string {
-	loginURL := baseURL + "/auth/login"
+func authenticate(address string) string {
+	loginURL := address + "/auth/login"
 	payload := strings.NewReader(`{"email":"admin@example.com","password":"secret"}`)
 
 	resp, err := http.Post(loginURL, "application/json", payload)

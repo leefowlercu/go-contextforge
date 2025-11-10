@@ -92,10 +92,10 @@ type Client struct {
 	clientMu sync.Mutex   // protects the client during calls
 	client   *http.Client // HTTP client used to communicate with the API
 
-	// Base URL for API requests.
+	// Address for API requests.
 	// Defaults to http://localhost:8000/, but can be
 	// overridden to point to another ContextForge instance.
-	BaseURL *url.URL
+	Address *url.URL
 
 	// User agent used when communicating with the ContextForge API.
 	UserAgent string

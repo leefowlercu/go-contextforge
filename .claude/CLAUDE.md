@@ -45,11 +45,10 @@ The SDK follows the **service-oriented architecture pattern** established by `go
 ### Key Components
 
 **Client Management** (`contextforge/contextforge.go`):
-- `NewClient(httpClient, baseURL, bearerToken)`: Factory for authenticated clients (returns `*Client, error`)
-  - Accepts baseURL as string parameter (e.g., `"https://api.example.com/"`)
+- `NewClient(httpClient, address, bearerToken)`: Factory for authenticated clients (returns `*Client, error`)
+  - Accepts address as string parameter (e.g., `"https://api.example.com/"`)
   - Automatically appends trailing slash if missing
   - Returns error for invalid URL formats
-  - `SuggestedBaseURL` constant provides default URL for local development (`http://localhost:8000/`)
 - `NewRequest()`: Creates HTTP requests with proper headers and authentication
 - `Do()`: Executes requests with context support, error handling, and rate limit tracking
 - Thread-safe rate limit tracking using `sync.Mutex` and `rateLimits` map
@@ -219,7 +218,7 @@ Located in `test/integration/*_test.go`:
 - Run against real ContextForge gateway (or mock MCP server for gateway tests)
 - Environment configuration:
   - `INTEGRATION_TESTS=true` (required to run)
-  - `CONTEXTFORGE_BASE_URL` (default: `http://localhost:8000/`)
+  - `CONTEXTFORGE_ADDR` (default: `http://localhost:8000/`)
   - `CONTEXTFORGE_ADMIN_EMAIL` (default: `admin@test.local`)
   - `CONTEXTFORGE_ADMIN_PASSWORD` (default: `testpassword123`)
 - JWT authentication via login endpoint

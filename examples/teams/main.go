@@ -259,14 +259,14 @@ func main() {
 	fmt.Println("• Member endpoints use email as identifier (not ID)")
 	fmt.Println("• Invitation acceptance uses token in path")
 	fmt.Println("\nTo use with a real ContextForge instance:")
-	fmt.Println("1. Replace server.URL with your ContextForge base URL")
+	fmt.Println("1. Replace server.URL with your ContextForge address")
 	fmt.Println("2. Use real authentication credentials")
 	fmt.Println("3. Manage actual team members and invitations")
 }
 
 // authenticate performs mock authentication and returns a JWT token
-func authenticate(baseURL string) string {
-	loginURL := baseURL + "/auth/login"
+func authenticate(address string) string {
+	loginURL := address + "/auth/login"
 	payload := strings.NewReader(`{"email":"admin@example.com","password":"secret"}`)
 
 	resp, err := http.Post(loginURL, "application/json", payload)

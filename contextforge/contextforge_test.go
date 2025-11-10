@@ -13,59 +13,59 @@ import (
 func TestNewClient(t *testing.T) {
 	tests := []struct {
 		name        string
-		baseURL     string
+		address     string
 		bearerToken string
-		wantBaseURL string
+		wantAddress string
 		wantErr     bool
 		wantErrMsg  string
 	}{
 		{
 			name:        "valid URL with trailing slash",
-			baseURL:     "https://api.example.com/v1/",
+			address:     "https://api.example.com/v1/",
 			bearerToken: "test-token",
-			wantBaseURL: "https://api.example.com/v1/",
+			wantAddress: "https://api.example.com/v1/",
 			wantErr:     false,
 		},
 		{
 			name:        "valid URL without trailing slash",
-			baseURL:     "https://api.example.com/v1",
+			address:     "https://api.example.com/v1",
 			bearerToken: "test-token",
-			wantBaseURL: "https://api.example.com/v1/",
+			wantAddress: "https://api.example.com/v1/",
 			wantErr:     false,
 		},
 		{
 			name:        "localhost URL",
-			baseURL:     "http://localhost:9000/",
+			address:     "http://localhost:9000/",
 			bearerToken: "test-token",
-			wantBaseURL: "http://localhost:9000/",
+			wantAddress: "http://localhost:9000/",
 			wantErr:     false,
 		},
 		{
 			name:        "localhost URL without trailing slash",
-			baseURL:     "http://localhost:9000",
+			address:     "http://localhost:9000",
 			bearerToken: "test-token",
-			wantBaseURL: "http://localhost:9000/",
+			wantAddress: "http://localhost:9000/",
 			wantErr:     false,
 		},
 		{
 			name:        "invalid URL",
-			baseURL:     "://invalid-url",
+			address:     "://invalid-url",
 			bearerToken: "test-token",
 			wantErr:     true,
-			wantErrMsg:  "invalid base URL",
+			wantErrMsg:  "invalid address",
 		},
 		{
 			name:        "URL with path",
-			baseURL:     "https://api.example.com/contextforge/api/",
+			address:     "https://api.example.com/contextforge/api/",
 			bearerToken: "test-token",
-			wantBaseURL: "https://api.example.com/contextforge/api/",
+			wantAddress: "https://api.example.com/contextforge/api/",
 			wantErr:     false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c, err := NewClient(nil, tt.baseURL, tt.bearerToken)
+			c, err := NewClient(nil, tt.address, tt.bearerToken)
 
 			if tt.wantErr {
 				if err == nil {
@@ -87,8 +87,8 @@ func TestNewClient(t *testing.T) {
 				t.Fatal("NewClient() returned nil client")
 			}
 
-			if c.BaseURL.String() != tt.wantBaseURL {
-				t.Errorf("NewClient() BaseURL = %q, want %q", c.BaseURL.String(), tt.wantBaseURL)
+			if c.Address.String() != tt.wantAddress {
+				t.Errorf("NewClient() Address = %q, want %q", c.Address.String(), tt.wantAddress)
 			}
 
 			if c.BearerToken != tt.bearerToken {
@@ -137,7 +137,7 @@ func TestNewRequest(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		baseURL     string
+		address     string
 		method      string
 		urlStr      string
 		body        any
@@ -147,7 +147,7 @@ func TestNewRequest(t *testing.T) {
 	}{
 		{
 			name:    "valid request without body",
-			baseURL: "http://localhost:8000/",
+			address: "http://localhost:8000/",
 			method:  "GET",
 			urlStr:  "tools",
 			body:    nil,
@@ -155,24 +155,24 @@ func TestNewRequest(t *testing.T) {
 		},
 		{
 			name:    "valid request with body",
-			baseURL: "http://localhost:8000/",
+			address: "http://localhost:8000/",
 			method:  "POST",
 			urlStr:  "tools",
 			body:    map[string]string{"name": "test"},
 			wantErr: false,
 		},
 		{
-			name:       "baseURL without trailing slash",
-			baseURL:    "http://localhost:8000",
+			name:       "address without trailing slash",
+			address:    "http://localhost:8000",
 			method:     "GET",
 			urlStr:     "tools",
 			body:       nil,
 			wantErr:    true,
-			wantErrMsg: "BaseURL must have a trailing slash",
+			wantErrMsg: "Address must have a trailing slash",
 		},
 		{
 			name:       "invalid URL path",
-			baseURL:    "http://localhost:8000/",
+			address:    "http://localhost:8000/",
 			method:     "GET",
 			urlStr:     "://invalid",
 			body:       nil,
@@ -183,8 +183,8 @@ func TestNewRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			baseURL, _ := url.Parse(tt.baseURL)
-			c.BaseURL = baseURL
+			address, _ := url.Parse(tt.address)
+			c.Address = address
 
 			req, err := c.NewRequest(tt.method, tt.urlStr, tt.body)
 

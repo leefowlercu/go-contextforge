@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	defaultBaseURL         = "http://localhost:8000/"
+	defaultAddress         = "http://localhost:8000/"
 	defaultAdminEmail      = "admin@test.local"
 	defaultAdminPass       = "testpassword123"
 	testToolNamePrefix     = "test-tool"
@@ -36,12 +36,12 @@ func skipIfNotIntegration(t *testing.T) {
 	}
 }
 
-// getBaseURL returns the base URL for the ContextForge API
-func getBaseURL() string {
-	if url := os.Getenv("CONTEXTFORGE_BASE_URL"); url != "" {
+// getAddress returns the address for the ContextForge API
+func getAddress() string {
+	if url := os.Getenv("CONTEXTFORGE_ADDR"); url != "" {
 		return url
 	}
-	return defaultBaseURL
+	return defaultAddress
 }
 
 // getAdminEmail returns the admin email for authentication
@@ -70,8 +70,8 @@ type loginResponse struct {
 func getTestToken(t *testing.T) string {
 	t.Helper()
 
-	baseURL := getBaseURL()
-	loginURL := baseURL + "auth/login"
+	address := getAddress()
+	loginURL := address + "auth/login"
 
 	loginReq := map[string]string{
 		"username": getAdminEmail(),
@@ -113,12 +113,12 @@ func setupClient(t *testing.T) *contextforge.Client {
 	skipIfNotIntegration(t)
 
 	token := getTestToken(t)
-	client, err := contextforge.NewClient(nil, getBaseURL(), token)
+	client, err := contextforge.NewClient(nil, getAddress(), token)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 
-	t.Logf("Created ContextForge client with base URL: %s", client.BaseURL.String())
+	t.Logf("Created ContextForge client with address: %s", client.Address.String())
 	return client
 }
 

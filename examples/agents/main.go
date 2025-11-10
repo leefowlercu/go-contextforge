@@ -281,14 +281,14 @@ func main() {
 	fmt.Println("• Create request is wrapped: {\"agent\": {...}}")
 	fmt.Println("• Update request is unwrapped (direct body)")
 	fmt.Println("\nTo use with a real ContextForge instance:")
-	fmt.Println("1. Replace server.URL with your ContextForge base URL")
+	fmt.Println("1. Replace server.URL with your ContextForge address")
 	fmt.Println("2. Use real authentication credentials")
 	fmt.Println("3. Adjust agent endpoints to match real A2A agents")
 }
 
 // authenticate performs mock authentication and returns a JWT token
-func authenticate(baseURL string) string {
-	loginURL := baseURL + "/auth/login"
+func authenticate(address string) string {
+	loginURL := address + "/auth/login"
 	payload := strings.NewReader(`{"email":"admin@example.com","password":"secret"}`)
 
 	resp, err := http.Post(loginURL, "application/json", payload)
@@ -358,13 +358,13 @@ func setupMockEndpoints(mux *http.ServeMux) {
 				Config:          req.Agent.Config,
 				AuthType:        req.Agent.AuthType,
 				// Don't return AuthValue (it's encrypted by API)
-				Enabled:   true,
-				Reachable: true, // Simulated connectivity status
-				Tags:      req.Agent.Tags,
-				TeamID:    req.Agent.TeamID,
+				Enabled:    true,
+				Reachable:  true, // Simulated connectivity status
+				Tags:       req.Agent.Tags,
+				TeamID:     req.Agent.TeamID,
 				Visibility: req.Agent.Visibility,
-				CreatedAt: &contextforge.Timestamp{Time: now},
-				UpdatedAt: &contextforge.Timestamp{Time: now},
+				CreatedAt:  &contextforge.Timestamp{Time: now},
+				UpdatedAt:  &contextforge.Timestamp{Time: now},
 				Metrics: &contextforge.AgentMetrics{
 					TotalExecutions:      0,
 					SuccessfulExecutions: 0,

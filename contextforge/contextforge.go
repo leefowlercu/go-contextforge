@@ -15,32 +15,29 @@ import (
 )
 
 const (
-	// SuggestedBaseURL is the default base URL for a locally-running ContextForge instance.
-	// Users should provide their own base URL when creating clients.
-	SuggestedBaseURL = "http://localhost:8000/"
-	userAgent        = "go-contextforge/v" + Version
-	mediaTypeJSON    = "application/json"
+	userAgent     = "go-contextforge/v" + Version
+	mediaTypeJSON = "application/json"
 )
 
-// NewClient returns a new ContextForge API client with the specified base URL.
+// NewClient returns a new ContextForge API client with the specified address.
 // If a nil httpClient is provided, a new http.Client will be used. The bearerToken
 // parameter is required for API authentication and should be a valid JWT token.
-// The baseURL parameter must be a valid URL; a trailing slash will be added automatically if missing.
-func NewClient(httpClient *http.Client, baseURL string, bearerToken string) (*Client, error) {
-	if !strings.HasSuffix(baseURL, "/") {
-		baseURL = baseURL + "/"
+// The address parameter must be a valid URL; a trailing slash will be added automatically if missing.
+func NewClient(httpClient *http.Client, address string, bearerToken string) (*Client, error) {
+	if !strings.HasSuffix(address, "/") {
+		address = address + "/"
 	}
 
-	parsedURL, err := url.Parse(baseURL)
+	parsedURL, err := url.Parse(address)
 	if err != nil {
-		return nil, fmt.Errorf("invalid base URL; %w", err)
+		return nil, fmt.Errorf("invalid address; %w", err)
 	}
 
 	return newClient(httpClient, parsedURL, bearerToken), nil
 }
 
 // newClient initializes a new client with the given parameters.
-func newClient(httpClient *http.Client, baseURL *url.URL, bearerToken string) *Client {
+func newClient(httpClient *http.Client, address *url.URL, bearerToken string) *Client {
 	if httpClient == nil {
 		httpClient = &http.Client{
 			Timeout: 30 * time.Second,
@@ -49,7 +46,7 @@ func newClient(httpClient *http.Client, baseURL *url.URL, bearerToken string) *C
 
 	c := &Client{
 		client:      httpClient,
-		BaseURL:     baseURL,
+		Address:     address,
 		UserAgent:   userAgent,
 		BearerToken: bearerToken,
 		rateLimits:  make(map[string]Rate),
@@ -68,16 +65,16 @@ func newClient(httpClient *http.Client, baseURL *url.URL, bearerToken string) *C
 }
 
 // NewRequest creates an API request. A relative URL can be provided in urlStr,
-// in which case it is resolved relative to the BaseURL of the Client.
+// in which case it is resolved relative to the Address of the Client.
 // Relative URLs should always be specified without a preceding slash. If
 // specified, the value pointed to by body is JSON encoded and included as the
 // request body.
 func (c *Client) NewRequest(method, urlStr string, body any) (*http.Request, error) {
-	if !strings.HasSuffix(c.BaseURL.Path, "/") {
-		return nil, fmt.Errorf("BaseURL must have a trailing slash, but %q does not", c.BaseURL)
+	if !strings.HasSuffix(c.Address.Path, "/") {
+		return nil, fmt.Errorf("Address must have a trailing slash, but %q does not", c.Address)
 	}
 
-	u, err := c.BaseURL.Parse(urlStr)
+	u, err := c.Address.Parse(urlStr)
 	if err != nil {
 		return nil, err
 	}

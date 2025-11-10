@@ -39,14 +39,14 @@
 //
 //	import "github.com/leefowlercu/go-contextforge/contextforge"
 //
-// Create a new client (use SuggestedBaseURL for local development):
+// Create a new client (example for local development):
 //
-//	client, err := contextforge.NewClient(nil, contextforge.SuggestedBaseURL, "your-jwt-token")
+//	client, err := contextforge.NewClient(nil, "http://localhost:8000/", "your-jwt-token")
 //	if err != nil {
 //		log.Fatal(err)
 //	}
 //
-// Create a client with custom base URL:
+// Create a client with custom address:
 //
 //	client, err := contextforge.NewClient(nil, "https://contextforge.example.com/", "your-jwt-token")
 //	if err != nil {
@@ -58,7 +58,7 @@
 //	httpClient := &http.Client{
 //		Timeout: 60 * time.Second,
 //	}
-//	client, err := contextforge.NewClient(httpClient, contextforge.SuggestedBaseURL, "your-jwt-token")
+//	client, err := contextforge.NewClient(httpClient, "http://localhost:8000/", "your-jwt-token")
 //	if err != nil {
 //		log.Fatal(err)
 //	}

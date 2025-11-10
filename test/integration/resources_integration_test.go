@@ -313,7 +313,7 @@ func TestResourcesService_ErrorHandling(t *testing.T) {
 
 	t.Run("invalid authentication", func(t *testing.T) {
 		// Create client with invalid token
-		invalidClient, err := contextforge.NewClient(nil, client.BaseURL.String(), "invalid-token-xyz")
+		invalidClient, err := contextforge.NewClient(nil, client.Address.String(), "invalid-token-xyz")
 		if err != nil {
 			t.Fatalf("Failed to create invalid client: %v", err)
 		}
