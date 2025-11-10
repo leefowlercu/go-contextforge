@@ -90,7 +90,7 @@ fi
 echo ""
 
 echo "📊 Gateway Information:"
-echo "   Endpoint: http://localhost:8000"
+echo "   Address: http://localhost:8000"
 echo "   Admin Email: admin@test.local"
 echo "   Admin Password: testpassword123"
 echo "   PID: $GATEWAY_PID"
