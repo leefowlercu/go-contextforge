@@ -20,7 +20,7 @@ func TestGatewayError(t *testing.T) {
 
 	gateway := minimalGatewayInput()
 	t.Logf("Creating gateway with URL: %s", gateway.URL)
-	
+
 	_, resp, err := client.Gateways.Create(ctx, gateway, nil)
 	if err != nil {
 		t.Logf("Error response status: %d", resp.StatusCode)

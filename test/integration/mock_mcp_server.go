@@ -71,10 +71,10 @@ type MCPResponse struct {
 
 // MCPInitializeResult represents the result field in initialize response per spec 2025-06-18
 type MCPInitializeResult struct {
-	ProtocolVersion string                 `json:"protocolVersion"`
-	Capabilities    MCPServerCapabilities  `json:"capabilities"`
-	ServerInfo      MCPServerInfo          `json:"serverInfo"`
-	Instructions    string                 `json:"instructions,omitempty"`
+	ProtocolVersion string                `json:"protocolVersion"`
+	Capabilities    MCPServerCapabilities `json:"capabilities"`
+	ServerInfo      MCPServerInfo         `json:"serverInfo"`
+	Instructions    string                `json:"instructions,omitempty"`
 }
 
 // MCPServerCapabilities represents server capabilities per spec

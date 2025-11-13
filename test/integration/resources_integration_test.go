@@ -332,3 +332,72 @@ func TestResourcesService_ErrorHandling(t *testing.T) {
 		t.Logf("Correctly received 401 error for invalid token")
 	})
 }
+
+func TestResourcesService_GetContent(t *testing.T) {
+	client := setupClient(t)
+	ctx := context.Background()
+
+	t.Run("get text resource content", func(t *testing.T) {
+		// Create a test resource with text content
+		resource := &contextforge.ResourceCreate{
+			URI:         "test://integration/text-resource",
+			Name:        randomResourceName(),
+			Content:     "This is test content for integration testing",
+			Description: contextforge.String("Integration test text resource"),
+			MimeType:    contextforge.String("text/plain"),
+			Tags:        []string{"integration-test", "get-test"},
+		}
+
+		created, _, err := client.Resources.Create(ctx, resource, nil)
+		if err != nil {
+			t.Fatalf("Failed to create resource: %v", err)
+		}
+
+		// Cleanup
+		t.Cleanup(func() {
+			cleanupResource(t, client, string(*created.ID))
+		})
+
+		// Get the resource content
+		content, _, err := client.Resources.Get(ctx, string(*created.ID))
+		if err != nil {
+			t.Fatalf("Failed to get resource content: %v", err)
+		}
+
+		// Verify content structure
+		if content.Type != "resource" {
+			t.Errorf("Expected type 'resource', got %q", content.Type)
+		}
+
+		if content.URI == "" {
+			t.Error("Expected URI to be set")
+		}
+
+		if content.Text == nil {
+			t.Error("Expected text content to be non-nil")
+		} else if *content.Text == "" {
+			t.Error("Expected text content to be non-empty")
+		}
+
+		if content.MimeType != nil {
+			t.Logf("Resource has mimeType: %s", *content.MimeType)
+		}
+
+		t.Logf("Successfully retrieved resource content (type: %s, uri: %s)", content.Type, content.URI)
+	})
+
+	t.Run("get non-existent resource returns error", func(t *testing.T) {
+		_, _, err := client.Resources.Get(ctx, "non-existent-resource-id-xyz")
+		if err == nil {
+			t.Error("Expected error when getting non-existent resource")
+		}
+
+		if apiErr, ok := err.(*contextforge.ErrorResponse); ok {
+			if apiErr.Response.StatusCode != http.StatusNotFound {
+				t.Errorf("Expected 404 Not Found, got %d", apiErr.Response.StatusCode)
+			}
+		}
+
+		t.Logf("Correctly received error for non-existent resource: %v", err)
+	})
+}

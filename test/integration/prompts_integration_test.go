@@ -652,3 +652,178 @@ func TestPromptsService_EdgeCases(t *testing.T) {
 		t.Logf("Successfully created prompt with many arguments")
 	})
 }
+
+func TestPromptsService_GetRenderedPrompt(t *testing.T) {
+	skipIfNotIntegration(t)
+
+	client := setupClient(t)
+	ctx := context.Background()
+
+	t.Run("get rendered prompt with arguments", func(t *testing.T) {
+		// Create a test prompt with arguments
+		prompt := &contextforge.PromptCreate{
+			Name:        randomPromptName(),
+			Description: contextforge.String("Integration test prompt for Get method"),
+			Template:    "Hello {{name}}! Welcome to {{topic}}.",
+			Arguments: []contextforge.PromptArgument{
+				{Name: "name", Description: contextforge.String("User's name"), Required: true},
+				{Name: "topic", Description: contextforge.String("Topic of discussion"), Required: true},
+			},
+			Tags: []string{"integration-test", "get-test"},
+		}
+
+		created, _, err := client.Prompts.Create(ctx, prompt, nil)
+		if err != nil {
+			t.Fatalf("Failed to create prompt: %v", err)
+		}
+
+		t.Cleanup(func() {
+			cleanupPrompt(t, client, created.ID)
+		})
+
+		// Get the rendered prompt with arguments
+		args := map[string]string{
+			"name":  "Alice",
+			"topic": "Go programming",
+		}
+
+		result, _, err := client.Prompts.Get(ctx, created.Name, args)
+		if err != nil {
+			t.Fatalf("Failed to get rendered prompt: %v", err)
+		}
+
+		// Verify result structure
+		if result.Messages == nil || len(result.Messages) == 0 {
+			t.Error("Expected at least one message in the result")
+		}
+
+		if result.Description != nil {
+			t.Logf("Prompt description: %s", *result.Description)
+		}
+
+		// Check that the template was rendered with the arguments
+		if len(result.Messages) > 0 && result.Messages[0].Content != nil {
+			if result.Messages[0].Content.Text != nil {
+				renderedText := *result.Messages[0].Content.Text
+				if !strings.Contains(renderedText, "Alice") || !strings.Contains(renderedText, "Go programming") {
+					t.Errorf("Expected rendered text to contain arguments, got: %s", renderedText)
+				}
+				t.Logf("Successfully rendered prompt: %s", renderedText)
+			}
+		}
+	})
+
+	t.Run("get rendered prompt without arguments", func(t *testing.T) {
+		// Create a simple prompt without required arguments
+		prompt := &contextforge.PromptCreate{
+			Name:        randomPromptName(),
+			Description: contextforge.String("Simple prompt without arguments"),
+			Template:    "This is a simple prompt without any variables.",
+			Tags:        []string{"integration-test", "get-test"},
+		}
+
+		created, _, err := client.Prompts.Create(ctx, prompt, nil)
+		if err != nil {
+			t.Fatalf("Failed to create prompt: %v", err)
+		}
+
+		t.Cleanup(func() {
+			cleanupPrompt(t, client, created.ID)
+		})
+
+		// Get the rendered prompt with empty arguments
+		result, _, err := client.Prompts.Get(ctx, created.Name, nil)
+		if err != nil {
+			t.Fatalf("Failed to get rendered prompt: %v", err)
+		}
+
+		// Verify result
+		if result.Messages == nil || len(result.Messages) == 0 {
+			t.Error("Expected at least one message in the result")
+		}
+
+		t.Logf("Successfully retrieved prompt without arguments")
+	})
+
+	t.Run("get prompt using GetNoArgs convenience method", func(t *testing.T) {
+		// Create a simple prompt
+		prompt := &contextforge.PromptCreate{
+			Name:        randomPromptName(),
+			Description: contextforge.String("Prompt for GetNoArgs test"),
+			Template:    "Welcome to the integration test!",
+			Tags:        []string{"integration-test", "get-test"},
+		}
+
+		created, _, err := client.Prompts.Create(ctx, prompt, nil)
+		if err != nil {
+			t.Fatalf("Failed to create prompt: %v", err)
+		}
+
+		t.Cleanup(func() {
+			cleanupPrompt(t, client, created.ID)
+		})
+
+		// Use GetNoArgs method
+		result, _, err := client.Prompts.GetNoArgs(ctx, created.Name)
+		if err != nil {
+			t.Fatalf("Failed to get prompt with GetNoArgs: %v", err)
+		}
+
+		// Verify result
+		if result.Messages == nil || len(result.Messages) == 0 {
+			t.Error("Expected at least one message in the result")
+		}
+
+		if result.Description != nil && *result.Description != *prompt.Description {
+			t.Errorf("Expected description %q, got %q", *prompt.Description, *result.Description)
+		}
+
+		t.Logf("Successfully retrieved prompt using GetNoArgs")
+	})
+
+	t.Run("get non-existent prompt returns error", func(t *testing.T) {
+		_, _, err := client.Prompts.Get(ctx, "non-existent-prompt-xyz", nil)
+		if err == nil {
+			t.Error("Expected error when getting non-existent prompt")
+		}
+
+		// The API may return 422 instead of 404 for non-existent prompts
+		if apiErr, ok := err.(*contextforge.ErrorResponse); ok {
+			if apiErr.Response.StatusCode != http.StatusNotFound && apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Logf("Note: Expected 404 or 422, got %d (may be API behavior)", apiErr.Response.StatusCode)
+			}
+		}
+
+		t.Logf("Correctly received error for non-existent prompt: %v", err)
+	})
+
+	t.Run("get prompt with missing required arguments", func(t *testing.T) {
+		// Create a prompt with required arguments
+		prompt := &contextforge.PromptCreate{
+			Name:        randomPromptName(),
+			Description: contextforge.String("Prompt with required args"),
+			Template:    "Hello {{name}}!",
+			Arguments: []contextforge.PromptArgument{
+				{Name: "name", Description: contextforge.String("User's name"), Required: true},
+			},
+			Tags: []string{"integration-test", "get-test"},
+		}
+
+		created, _, err := client.Prompts.Create(ctx, prompt, nil)
+		if err != nil {
+			t.Fatalf("Failed to create prompt: %v", err)
+		}
+
+		t.Cleanup(func() {
+			cleanupPrompt(t, client, created.ID)
+		})
+
+		// Try to get without providing required arguments
+		_, _, err = client.Prompts.Get(ctx, created.Name, nil)
+		if err == nil {
+			t.Log("Note: API may allow missing required arguments (renders template as-is)")
+		} else {
+			t.Logf("API rejected missing required arguments: %v", err)
+		}
+	})
+}
