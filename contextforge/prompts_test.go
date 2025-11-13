@@ -80,6 +80,169 @@ func TestPromptsService_List_WithOptions(t *testing.T) {
 	}
 }
 
+func TestPromptsService_Get(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	tests := []struct {
+		name         string
+		promptID     string
+		args         map[string]string
+		responseBody string
+		wantDesc     *string
+		wantMsgCount int
+	}{
+		{
+			name:     "get prompt with arguments",
+			promptID: "greeting",
+			args: map[string]string{
+				"name":  "Alice",
+				"topic": "Go programming",
+			},
+			responseBody: `{
+				"description": "A greeting prompt",
+				"messages": [
+					{
+						"role": "user",
+						"content": {
+							"type": "text",
+							"text": "Hello Alice! Let's talk about Go programming."
+						}
+					}
+				]
+			}`,
+			wantDesc:     String("A greeting prompt"),
+			wantMsgCount: 1,
+		},
+		{
+			name:     "get prompt without arguments",
+			promptID: "simple",
+			args:     map[string]string{},
+			responseBody: `{
+				"messages": [
+					{
+						"role": "user",
+						"content": {
+							"type": "text",
+							"text": "Simple message"
+						}
+					}
+				]
+			}`,
+			wantMsgCount: 1,
+		},
+		{
+			name:     "get prompt with nil args",
+			promptID: "test",
+			args:     nil,
+			responseBody: `{
+				"messages": [
+					{
+						"role": "assistant",
+						"content": {
+							"type": "text",
+							"text": "Response message"
+						}
+					}
+				]
+			}`,
+			wantMsgCount: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mux.HandleFunc("/prompts/"+tt.promptID, func(w http.ResponseWriter, r *http.Request) {
+				testMethod(t, r, "POST")
+				w.Header().Set("Content-Type", "application/json")
+				fmt.Fprint(w, tt.responseBody)
+			})
+
+			ctx := context.Background()
+			result, _, err := client.Prompts.Get(ctx, tt.promptID, tt.args)
+
+			if err != nil {
+				t.Errorf("Prompts.Get returned error: %v", err)
+			}
+
+			if tt.wantDesc != nil {
+				if result.Description == nil {
+					t.Error("result.Description = nil, want non-nil")
+				} else if *result.Description != *tt.wantDesc {
+					t.Errorf("result.Description = %q, want %q", *result.Description, *tt.wantDesc)
+				}
+			}
+
+			if len(result.Messages) != tt.wantMsgCount {
+				t.Errorf("len(result.Messages) = %d, want %d", len(result.Messages), tt.wantMsgCount)
+			}
+
+			if len(result.Messages) > 0 && result.Messages[0].Content != nil {
+				if result.Messages[0].Content.Type != "text" {
+					t.Errorf("message content type = %q, want %q", result.Messages[0].Content.Type, "text")
+				}
+			}
+		})
+	}
+}
+
+func TestPromptsService_GetNoArgs(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/prompts/test-prompt", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{
+			"description": "Test prompt",
+			"messages": [
+				{
+					"role": "user",
+					"content": {
+						"type": "text",
+						"text": "Test message"
+					}
+				}
+			]
+		}`)
+	})
+
+	ctx := context.Background()
+	result, _, err := client.Prompts.GetNoArgs(ctx, "test-prompt")
+
+	if err != nil {
+		t.Errorf("Prompts.GetNoArgs returned error: %v", err)
+	}
+
+	if result.Description == nil {
+		t.Error("result.Description = nil, want non-nil")
+	} else if *result.Description != "Test prompt" {
+		t.Errorf("result.Description = %q, want %q", *result.Description, "Test prompt")
+	}
+
+	if len(result.Messages) != 1 {
+		t.Errorf("len(result.Messages) = %d, want 1", len(result.Messages))
+	}
+}
+
+func TestPromptsService_Get_NotFound(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/prompts/nonexistent", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"message":"Prompt not found"}`)
+	})
+
+	ctx := context.Background()
+	_, _, err := client.Prompts.Get(ctx, "nonexistent", nil)
+
+	if err == nil {
+		t.Error("Prompts.Get expected error, got nil")
+	}
+}
+
 func TestPromptsService_Create(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()

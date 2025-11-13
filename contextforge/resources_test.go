@@ -39,6 +39,112 @@ func TestResourcesService_List(t *testing.T) {
 	}
 }
 
+func TestResourcesService_Get(t *testing.T) {
+	tests := []struct {
+		name         string
+		resourceID   string
+		responseBody string
+		wantURI      string
+		wantText     *string
+		wantBlob     *string
+		wantMimeType *string
+	}{
+		{
+			name:         "get text resource",
+			resourceID:   "test-text",
+			responseBody: `{"type":"resource","uri":"file:///test.txt","mimeType":"text/plain","text":"Hello, World!"}`,
+			wantURI:      "file:///test.txt",
+			wantText:     String("Hello, World!"),
+			wantMimeType: String("text/plain"),
+		},
+		{
+			name:         "get blob resource",
+			resourceID:   "test-blob",
+			responseBody: `{"type":"resource","uri":"file:///image.png","mimeType":"image/png","blob":"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="}`,
+			wantURI:      "file:///image.png",
+			wantBlob:     String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="),
+			wantMimeType: String("image/png"),
+		},
+		{
+			name:         "get resource without mime type",
+			resourceID:   "test-nomime",
+			responseBody: `{"type":"resource","uri":"resource://123","text":"binary data"}`,
+			wantURI:      "resource://123",
+			wantText:     String("binary data"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, mux, _, teardown := setup()
+			defer teardown()
+
+			mux.HandleFunc("/resources/"+tt.resourceID, func(w http.ResponseWriter, r *http.Request) {
+				testMethod(t, r, "GET")
+				w.Header().Set("Content-Type", "application/json")
+				fmt.Fprint(w, tt.responseBody)
+			})
+
+			ctx := context.Background()
+			content, _, err := client.Resources.Get(ctx, tt.resourceID)
+
+			if err != nil {
+				t.Errorf("Resources.Get returned error: %v", err)
+			}
+
+			if content.Type != "resource" {
+				t.Errorf("content.Type = %q, want %q", content.Type, "resource")
+			}
+
+			if content.URI != tt.wantURI {
+				t.Errorf("content.URI = %q, want %q", content.URI, tt.wantURI)
+			}
+
+			if tt.wantText != nil {
+				if content.Text == nil {
+					t.Error("content.Text = nil, want non-nil")
+				} else if *content.Text != *tt.wantText {
+					t.Errorf("content.Text = %q, want %q", *content.Text, *tt.wantText)
+				}
+			}
+
+			if tt.wantBlob != nil {
+				if content.Blob == nil {
+					t.Error("content.Blob = nil, want non-nil")
+				} else if *content.Blob != *tt.wantBlob {
+					t.Errorf("content.Blob = %q, want %q", *content.Blob, *tt.wantBlob)
+				}
+			}
+
+			if tt.wantMimeType != nil {
+				if content.MimeType == nil {
+					t.Error("content.MimeType = nil, want non-nil")
+				} else if *content.MimeType != *tt.wantMimeType {
+					t.Errorf("content.MimeType = %q, want %q", *content.MimeType, *tt.wantMimeType)
+				}
+			}
+		})
+	}
+}
+
+func TestResourcesService_Get_NotFound(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/resources/nonexistent", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, `{"message":"Resource not found"}`)
+	})
+
+	ctx := context.Background()
+	_, _, err := client.Resources.Get(ctx, "nonexistent")
+
+	if err == nil {
+		t.Error("Resources.Get expected error, got nil")
+	}
+}
+
 func TestResourcesService_Create(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
