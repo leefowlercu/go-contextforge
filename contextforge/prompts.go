@@ -10,10 +10,8 @@ import (
 // PromptsService handles communication with the prompt-related
 // methods of the ContextForge API.
 //
-// Note: This service intentionally excludes certain MCP client endpoints:
-// - POST /prompts/{id} - MCP spec endpoint for getting rendered prompts with arguments
-// - GET /prompts/{id} - MCP convenience endpoint for template information
-// These endpoints are for MCP client communication, not REST API management.
+// The /rpc endpoint handles MCP JSON-RPC protocol (prompts/get, etc.)
+// which is separate from these REST management endpoints.
 
 // List retrieves a paginated list of prompts from the ContextForge API.
 func (s *PromptsService) List(ctx context.Context, opts *PromptListOptions) ([]*Prompt, *Response, error) {
@@ -35,6 +33,50 @@ func (s *PromptsService) List(ctx context.Context, opts *PromptListOptions) ([]*
 	}
 
 	return prompts, resp, nil
+}
+
+// Get retrieves a prompt by ID and renders it with the provided arguments.
+// This is a hybrid REST endpoint (POST /prompts/{id}) that provides MCP prompts/get functionality via REST.
+func (s *PromptsService) Get(ctx context.Context, promptID string, args map[string]string) (*PromptResult, *Response, error) {
+	u := fmt.Sprintf("prompts/%s", promptID)
+
+	// Wrap args in request body format
+	body := args
+	if body == nil {
+		body = make(map[string]string)
+	}
+
+	req, err := s.client.NewRequest(http.MethodPost, u, body)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var result *PromptResult
+	resp, err := s.client.Do(ctx, req, &result)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return result, resp, nil
+}
+
+// GetNoArgs retrieves a prompt by ID without arguments.
+// This is a convenience method that calls GET /prompts/{id}.
+func (s *PromptsService) GetNoArgs(ctx context.Context, promptID string) (*PromptResult, *Response, error) {
+	u := fmt.Sprintf("prompts/%s", promptID)
+
+	req, err := s.client.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var result *PromptResult
+	resp, err := s.client.Do(ctx, req, &result)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return result, resp, nil
 }
 
 // Create creates a new prompt.

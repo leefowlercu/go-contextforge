@@ -10,10 +10,12 @@ import (
 // ServersService handles communication with the server-related
 // methods of the ContextForge API.
 //
-// Note: This service intentionally excludes certain MCP protocol endpoints:
-// - GET /servers/{server_id}/sse - SSE connection for MCP protocol communication
-// - POST /servers/{server_id}/message - MCP protocol message handling
-// These endpoints are for MCP protocol communication, not REST API management.
+// Note: This service intentionally excludes certain MCP protocol transport endpoints:
+// - GET /servers/{server_id}/sse - SSE connection for MCP protocol proxying
+// - POST /servers/{server_id}/message - JSON-RPC message relay for SSE sessions
+// These endpoints are for MCP protocol transport infrastructure, not REST API management.
+//
+// The /rpc endpoint handles MCP JSON-RPC protocol which is separate from these REST management endpoints.
 
 // List retrieves a paginated list of servers from the ContextForge API.
 func (s *ServersService) List(ctx context.Context, opts *ServerListOptions) ([]*Server, *Response, error) {

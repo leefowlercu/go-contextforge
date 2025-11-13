@@ -10,11 +10,12 @@ import (
 // ResourcesService handles communication with the resource-related
 // methods of the ContextForge API.
 //
-// Note: This service intentionally excludes certain MCP client endpoints:
-// - GET /resources/{id} - Returns resource content in MCP protocol format (type, uri, text, blob)
-// - POST /resources/subscribe/{id} - SSE streaming for MCP client subscriptions
-// These endpoints are for MCP client communication, not REST API management.
-// Use the List, Create, Update, Delete, and Toggle methods for resource management.
+// Note: This service intentionally excludes certain endpoints:
+// - POST /resources/subscribe/{id} - SSE streaming for real-time change notifications
+// The SSE endpoint is for event streaming, not REST API management.
+//
+// The /rpc endpoint handles MCP JSON-RPC protocol (resources/read, etc.)
+// which is separate from these REST management endpoints.
 
 // List retrieves a paginated list of resources from the ContextForge API.
 func (s *ResourcesService) List(ctx context.Context, opts *ResourceListOptions) ([]*Resource, *Response, error) {
@@ -36,6 +37,25 @@ func (s *ResourcesService) List(ctx context.Context, opts *ResourceListOptions) 
 	}
 
 	return resources, resp, nil
+}
+
+// Get retrieves the content of a specific resource by its ID.
+// This is a hybrid REST endpoint that returns resource content in MCP-compatible format.
+func (s *ResourcesService) Get(ctx context.Context, resourceID string) (*ResourceContent, *Response, error) {
+	u := fmt.Sprintf("resources/%s", url.PathEscape(resourceID))
+
+	req, err := s.client.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var content *ResourceContent
+	resp, err := s.client.Do(ctx, req, &content)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return content, resp, nil
 }
 
 // Create creates a new resource.
@@ -151,8 +171,8 @@ func (s *ResourcesService) Toggle(ctx context.Context, resourceID string, activa
 
 	// Toggle endpoint returns a wrapped response like: {"status": "...", "resource": {...}}
 	var result struct {
-		Status   string                   `json:"status"`
-		Message  string                   `json:"message"`
+		Status   string                  `json:"status"`
+		Message  string                  `json:"message"`
 		Resource *toggleResourceResponse `json:"resource"`
 	}
 

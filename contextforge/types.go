@@ -346,26 +346,26 @@ type ResourceTemplate struct {
 // Gateway represents a ContextForge gateway.
 type Gateway struct {
 	// Core fields
-	ID          *string    `json:"id,omitempty"`
-	Name        string     `json:"name"`
-	URL         string     `json:"url"`
-	Description *string    `json:"description,omitempty"`
-	Transport   string     `json:"transport,omitempty"`
-	Enabled     bool       `json:"enabled,omitempty"`
-	Reachable   bool       `json:"reachable,omitempty"`
+	ID           *string        `json:"id,omitempty"`
+	Name         string         `json:"name"`
+	URL          string         `json:"url"`
+	Description  *string        `json:"description,omitempty"`
+	Transport    string         `json:"transport,omitempty"`
+	Enabled      bool           `json:"enabled,omitempty"`
+	Reachable    bool           `json:"reachable,omitempty"`
 	Capabilities map[string]any `json:"capabilities,omitempty"`
 
 	// Authentication fields
-	PassthroughHeaders []string           `json:"passthroughHeaders,omitempty"`
-	AuthType           *string            `json:"authType,omitempty"`
-	AuthUsername       *string            `json:"authUsername,omitempty"`
-	AuthPassword       *string            `json:"authPassword,omitempty"`
-	AuthToken          *string            `json:"authToken,omitempty"`
-	AuthHeaderKey      *string            `json:"authHeaderKey,omitempty"`
-	AuthHeaderValue    *string            `json:"authHeaderValue,omitempty"`
+	PassthroughHeaders []string            `json:"passthroughHeaders,omitempty"`
+	AuthType           *string             `json:"authType,omitempty"`
+	AuthUsername       *string             `json:"authUsername,omitempty"`
+	AuthPassword       *string             `json:"authPassword,omitempty"`
+	AuthToken          *string             `json:"authToken,omitempty"`
+	AuthHeaderKey      *string             `json:"authHeaderKey,omitempty"`
+	AuthHeaderValue    *string             `json:"authHeaderValue,omitempty"`
 	AuthHeaders        []map[string]string `json:"authHeaders,omitempty"`
-	AuthValue          *string            `json:"authValue,omitempty"`
-	OAuthConfig        map[string]any     `json:"oauthConfig,omitempty"`
+	AuthValue          *string             `json:"authValue,omitempty"`
+	OAuthConfig        map[string]any      `json:"oauthConfig,omitempty"`
 
 	// Organizational fields
 	Tags       []string `json:"tags,omitempty"`
@@ -539,16 +539,16 @@ type ServerAssociationOptions struct {
 // Note: These types are shared between ServersService and the future PromptsService.
 type Prompt struct {
 	// Core fields
-	ID          int               `json:"id"`
-	Name        string            `json:"name"`
-	Description *string           `json:"description,omitempty"`
-	Template    string            `json:"template"`
-	Arguments   []PromptArgument  `json:"arguments"`
-	CreatedAt   *Timestamp        `json:"createdAt,omitempty"`
-	UpdatedAt   *Timestamp        `json:"updatedAt,omitempty"`
-	IsActive    bool              `json:"isActive"`
-	Tags        []string          `json:"tags,omitempty"`
-	Metrics     *PromptMetrics    `json:"metrics,omitempty"`
+	ID          int              `json:"id"`
+	Name        string           `json:"name"`
+	Description *string          `json:"description,omitempty"`
+	Template    string           `json:"template"`
+	Arguments   []PromptArgument `json:"arguments"`
+	CreatedAt   *Timestamp       `json:"createdAt,omitempty"`
+	UpdatedAt   *Timestamp       `json:"updatedAt,omitempty"`
+	IsActive    bool             `json:"isActive"`
+	Tags        []string         `json:"tags,omitempty"`
+	Metrics     *PromptMetrics   `json:"metrics,omitempty"`
 
 	// Organizational fields
 	TeamID     *string `json:"teamId,omitempty"`
@@ -667,11 +667,11 @@ type Agent struct {
 	LastInteraction *Timestamp `json:"lastInteraction,omitempty"`
 
 	// Organizational fields
-	Tags       []string       `json:"tags,omitempty"`
-	Metrics    *AgentMetrics  `json:"metrics,omitempty"`
-	TeamID     *string        `json:"teamId,omitempty"`
-	OwnerEmail *string        `json:"ownerEmail,omitempty"`
-	Visibility *string        `json:"visibility,omitempty"`
+	Tags       []string      `json:"tags,omitempty"`
+	Metrics    *AgentMetrics `json:"metrics,omitempty"`
+	TeamID     *string       `json:"teamId,omitempty"`
+	OwnerEmail *string       `json:"ownerEmail,omitempty"`
+	Visibility *string       `json:"visibility,omitempty"`
 
 	// Metadata fields (read-only)
 	CreatedBy         *string `json:"createdBy,omitempty"`
@@ -899,4 +899,49 @@ type TeamJoinRequestResponse struct {
 	Status      string     `json:"status"`
 	RequestedAt *Timestamp `json:"requested_at,omitempty"`
 	ExpiresAt   *Timestamp `json:"expires_at,omitempty"`
+}
+
+// ResourceContent represents resource content in MCP-compatible format.
+// Returned by the GET /resources/{id} hybrid endpoint.
+type ResourceContent struct {
+	Type     string  `json:"type"`               // Always "resource"
+	URI      string  `json:"uri"`                // Resource URI
+	MimeType *string `json:"mimeType,omitempty"` // MIME type (optional)
+	Text     *string `json:"text,omitempty"`     // Text content (one of text/blob)
+	Blob     *string `json:"blob,omitempty"`     // Binary content as string (one of text/blob)
+}
+
+// PromptGetArgs represents the request body for POST /prompts/{id}.
+type PromptGetArgs struct {
+	Args map[string]string `json:"args,omitempty"` // Template arguments
+}
+
+// PromptResult represents the result of getting a prompt with arguments.
+// Returned by POST /prompts/{id} and GET /prompts/{id} hybrid endpoints.
+type PromptResult struct {
+	Description *string          `json:"description,omitempty"` // Optional description
+	Messages    []*PromptMessage `json:"messages"`              // Rendered messages
+}
+
+// PromptMessage represents a message in a prompt result.
+type PromptMessage struct {
+	Role    string                `json:"role"`    // Message role: "user" or "assistant"
+	Content *PromptMessageContent `json:"content"` // Message content
+}
+
+// PromptMessageContent represents the content of a prompt message.
+// Can be text, resource, JSON, or image content.
+type PromptMessageContent struct {
+	Type string `json:"type"` // Content type: "text", "resource", "json", "image"
+
+	// Text content fields
+	Text *string `json:"text,omitempty"`
+
+	// Resource content fields
+	URI      *string `json:"uri,omitempty"`
+	MimeType *string `json:"mimeType,omitempty"`
+	Blob     *string `json:"blob,omitempty"`
+
+	// JSON/Image content fields (data can be string for images or any for JSON)
+	Data any `json:"data,omitempty"`
 }
