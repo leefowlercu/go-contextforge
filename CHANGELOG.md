@@ -26,7 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test: add unit tests for hybrid endpoint methods
 - Test: update output text in integration test setup script
 
-
 ## [0.5.0] - 2025-11-10
 
 ### Added
