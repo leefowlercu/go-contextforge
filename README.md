@@ -261,6 +261,19 @@ created, _, err := client.Resources.Create(ctx, newResource, createOpts)
 // Create without options
 created, _, err = client.Resources.Create(ctx, newResource, nil)
 
+// Get resource content (hybrid REST endpoint returns MCP-compatible format)
+content, _, err := client.Resources.Get(ctx, "resource-id")
+if err == nil {
+    fmt.Printf("Resource type: %s\n", content.Type)
+    fmt.Printf("URI: %s\n", content.URI)
+    if content.Text != nil {
+        fmt.Printf("Text content: %s\n", *content.Text)
+    }
+    if content.Blob != nil {
+        fmt.Printf("Blob content (base64): %s\n", *content.Blob)
+    }
+}
+
 // Update resource (uses camelCase fields)
 update := &contextforge.ResourceUpdate{
     Description: contextforge.String("Updated description"),
@@ -423,6 +436,22 @@ createOpts := &contextforge.PromptCreateOptions{
 }
 created, _, err := client.Prompts.Create(ctx, newPrompt, createOpts)
 
+// Get rendered prompt with arguments (hybrid REST endpoint)
+args := map[string]string{
+    "language": "Go",
+    "code":     "func main() { fmt.Println(\"Hello\") }",
+}
+result, _, err := client.Prompts.Get(ctx, "code-review", args)
+if err == nil {
+    fmt.Printf("Description: %s\n", *result.Description)
+    for _, msg := range result.Messages {
+        fmt.Printf("Role: %s, Content: %s\n", msg.Role, *msg.Content.Text)
+    }
+}
+
+// Get prompt without arguments
+result, _, err = client.Prompts.GetNoArgs(ctx, "simple-prompt")
+
 // Update prompt
 update := &contextforge.PromptUpdate{
     Description: contextforge.String("Updated description"),
@@ -437,8 +466,6 @@ toggled, _, err = client.Prompts.Toggle(ctx, 123, false) // deactivate
 // Delete prompt
 _, err = client.Prompts.Delete(ctx, 123)
 ```
-
-**Note:** The PromptsService excludes MCP client endpoints (`POST /prompts/{id}` for rendered prompts). These are for MCP client communication, not REST API management.
 
 ### Managing Agents
 

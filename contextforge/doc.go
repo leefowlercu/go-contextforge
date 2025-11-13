@@ -11,13 +11,14 @@
 // The SDK provides full CRUD operations for ContextForge resources:
 //
 //   - Manage tools with create, update, delete, and toggle operations
-//   - Manage resources with URI-based access and template support
+//   - Manage resources with URI-based access, content retrieval, and template support
 //   - Manage gateways for MCP server federation and proxying
 //   - Manage servers including virtual MCP servers with association endpoints
-//   - Manage prompts with template-based AI interactions
+//   - Manage prompts with template-based AI interactions and rendered prompt retrieval
 //   - Manage A2A agents with agent-to-agent protocol support and invocation
+//   - Hybrid REST endpoints that return MCP-compatible data formats
 //   - Cursor-based pagination (Tools, Resources, Gateways, Servers, Prompts)
-//   - Skip/limit pagination (Agents)
+//   - Skip/limit pagination (Agents, Teams)
 //   - Rate limit tracking from response headers
 //   - Context support for all API calls
 //   - Bearer token (JWT) authentication
@@ -218,8 +219,13 @@
 //	client.Servers.ListResources(ctx, serverID, opts)
 //	client.Servers.ListPrompts(ctx, serverID, opts)
 //
-//	// ResourcesService template support
+//	// ResourcesService template support and content retrieval
 //	client.Resources.ListTemplates(ctx)
+//	client.Resources.Get(ctx, resourceID)  // Hybrid endpoint, returns MCP-compatible format
+//
+//	// PromptsService rendered prompt retrieval
+//	client.Prompts.Get(ctx, promptID, args)      // Hybrid endpoint with arguments
+//	client.Prompts.GetNoArgs(ctx, promptID)      // Hybrid endpoint without arguments
 //
 //	// AgentsService invocation
 //	client.Agents.Invoke(ctx, agentName, req)  // Uses name, not ID

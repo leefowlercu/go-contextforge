@@ -401,72 +401,105 @@ Some API endpoints require request body wrapping (e.g., `{"tool": {...}}`). Chec
 
 ## MCP Protocol vs REST API Endpoints
 
-The ContextForge API Gateway exposes TWO types of endpoints:
+ContextForge implements **TWO SEPARATE APIs** with different purposes:
 
-### 1. REST API Management Endpoints (IMPLEMENT IN SDK)
+### 1. REST API (Management Operations) - IMPLEMENT IN SDK
 
-These are CRUD operations for managing entities (tools, resources, servers, gateways, prompts):
-- Return management schemas with metadata: `createdAt`, `updatedAt`, `metrics`, `team`, `visibility`
-- Examples: `GET /tools`, `POST /resources`, `PUT /servers/{id}`, `DELETE /gateways/{id}`
-- Used by administrators/developers to manage entities
+Traditional REST endpoints for CRUD operations on ContextForge entities:
+- **Purpose**: Manage tools, resources, servers, gateways, prompts, agents, teams
+- **Authentication**: JWT bearer tokens
+- **Format**: Standard REST with JSON request/response bodies
+- **Examples**: `GET /tools`, `POST /resources`, `PUT /servers/{id}`, `DELETE /gateways/{id}`
+- **Response format**: Management schemas with metadata (`createdAt`, `updatedAt`, `team`, `visibility`)
 - **These should be implemented in the SDK**
 
-### 2. MCP Protocol/Client Endpoints (DO NOT IMPLEMENT)
+### 2. JSON-RPC API (MCP Protocol) - DO NOT IMPLEMENT
 
-These are for MCP clients to access content or establish protocol connections:
-- Return MCP protocol format: `{type, id, uri, mime_type, text, blob}`
-- Used by MCP clients to access actual content (not metadata)
-- Examples: `GET /resources/{id}`, `POST /message`, `GET /sse`, `POST /rpc`
-- SSE streaming endpoints for protocol communication
-- **These should NOT be implemented in the SDK**
+Single `/rpc` endpoint implementing MCP spec JSON-RPC protocol:
+- **Purpose**: MCP protocol compliance for client communication
+- **Endpoint**: `POST /rpc` (single endpoint for all JSON-RPC methods)
+- **Format**: JSON-RPC 2.0 messages
+- **Methods**: `initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `prompts/list`, `prompts/get`, `ping`
+- **Example request**:
+  ```json
+  POST /rpc
+  {"jsonrpc": "2.0", "id": 1, "method": "resources/read", "params": {"uri": "..."}}
+  ```
+- **This should NOT be implemented in the SDK**
 
-### Identifying MCP Protocol Endpoints
+### 3. Hybrid REST Endpoints - IMPLEMENT IN SDK
 
-Check the OpenAPI specification for these indicators:
+Some REST endpoints return MCP-compatible data formats while using standard REST patterns:
+- **Purpose**: Provide MCP functionality via REST for convenience
+- **Access pattern**: Standard HTTP GET/POST on resource paths (NOT JSON-RPC)
+- **Response format**: MCP-compatible (e.g., `{type: "resource", uri: "...", text: "..."}`)
+- **Examples**:
+  - `GET /resources/{id}` - Returns resource content in MCP format
+  - `POST /prompts/{id}` - Returns rendered prompt (MCP prompts/get semantics via REST)
+  - `GET /prompts/{id}` - Returns prompt without arguments
+- **These ARE REST endpoints and SHOULD be implemented in the SDK**
 
-**MCP Endpoint Indicators:**
-- Description mentions "Returns: Any" or "content of the resource" (not metadata)
-- Response schema is untyped or marked as "Any"
-- Endpoint path includes `/message`, `/sse`, `/rpc`, `/protocol/`, or `/subscribe/`
-- Description mentions "JSON-RPC", "SSE connection", "protocol", or "streaming"
-- Returns actual content (text, blob) rather than management metadata
+### Identifying Endpoint Types
 
-**REST Management Endpoint Indicators:**
-- Response schema references specific types: `ToolRead`, `ResourceRead`, `ServerRead`, etc.
-- Description mentions CRUD operations or management
-- Returns metadata fields like `createdAt`, `updatedAt`, `metrics`, `team`, etc.
+**REST Management Endpoints (Implement in SDK):**
+- Standard HTTP methods (GET, POST, PUT, DELETE) on resource paths
+- Returns typed schemas: `ToolRead`, `ResourceRead`, `ServerRead`, etc.
+- Includes management metadata: `createdAt`, `updatedAt`, `team`, `visibility`
+- CRUD operations described in endpoint documentation
+
+**JSON-RPC Protocol Endpoints (Do NOT implement):**
+- Single `POST /rpc` endpoint
+- Request body contains `{"jsonrpc": "2.0", "method": "...", "params": {...}}`
+- Implements MCP spec methods (e.g., `resources/read`, `tools/call`)
+
+**SSE/Event Streaming Endpoints (Do NOT implement):**
+- Server-Sent Events for real-time notifications
+- Endpoint paths containing `/sse`, `/subscribe/`, `/message`
+- Long-lived connections, not request/response
+- Examples:
+  - `POST /resources/subscribe/{id}` - SSE streaming for resource change notifications
+  - `GET /servers/{id}/sse` - SSE connection for MCP protocol proxying
+  - `POST /servers/{id}/message` - JSON-RPC message relay for SSE sessions
 
 ### Examples
 
-**Correctly Excluded MCP Endpoints:**
+**REST Management Endpoints (Implemented in SDK):**
 ```
-GET /resources/{id}         - Returns MCP format {type, id, uri, text, blob}
-POST /resources/subscribe/{id} - SSE streaming for MCP clients
-GET /servers/{id}/sse       - SSE connection for MCP protocol
-POST /servers/{id}/message  - MCP protocol messages
-POST /message               - JSON-RPC messaging
-GET /sse                    - SSE protocol communication
+GET /resources              - List resources with metadata
+GET /resources/{id}         - Read resource content (hybrid endpoint)
+POST /resources             - Create resource
+PUT /resources/{id}         - Update resource
+DELETE /resources/{id}      - Delete resource
+POST /resources/{id}/toggle - Toggle active status
+GET /prompts/{id}           - Get prompt without arguments (hybrid endpoint)
+POST /prompts/{id}          - Get prompt with arguments (hybrid endpoint)
 ```
 
-**Correctly Implemented REST API Endpoints:**
+**JSON-RPC Protocol Endpoints (NOT in SDK):**
 ```
-GET /resources              - Returns List[ResourceRead] with metadata
-POST /resources             - Creates resource, returns ResourceRead
-PUT /resources/{id}         - Updates resource, returns ResourceRead
-DELETE /resources/{id}      - Deletes resource
-POST /resources/{id}/toggle - Toggles resource, returns ResourceRead
+POST /rpc                   - MCP JSON-RPC protocol endpoint
+  Methods: resources/read, resources/list, tools/call, prompts/get, etc.
+```
+
+**SSE/Streaming Endpoints (NOT in SDK):**
+```
+POST /resources/subscribe/{id} - SSE streaming for change notifications
+GET /servers/{id}/sse          - SSE connection for MCP protocol transport
+POST /servers/{id}/message     - JSON-RPC message relay
 ```
 
 ### Service Documentation Pattern
 
-Each service file should include a note documenting excluded MCP endpoints:
+Each service file should document excluded endpoints clearly:
 
 ```go
 // ResourcesService handles communication with the resource-related
 // methods of the ContextForge API.
 //
-// Note: This service intentionally excludes certain MCP client endpoints:
-// - GET /resources/{id} - Returns resource content in MCP protocol format
-// - POST /resources/subscribe/{id} - SSE streaming for MCP clients
-// These endpoints are for MCP client communication, not REST API management.
+// Note: This service intentionally excludes certain endpoints:
+// - POST /resources/subscribe/{id} - SSE streaming for real-time change notifications
+// The SSE endpoint is for event streaming, not REST API management.
+//
+// The /rpc endpoint handles MCP JSON-RPC protocol (resources/read, etc.)
+// which is separate from these REST management endpoints.
 ```
