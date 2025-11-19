@@ -70,36 +70,60 @@ done
 echo "✅ Context Forge is ready!"
 echo ""
 
-# Generate JWT token for integration tests
+# Generate JWT token for integration tests using API (two-step process)
 echo "🔑 Generating JWT token for integration tests..."
+
+# Step 1: Generate bootstrap token with basic admin claims
+echo "  Creating bootstrap token..."
 uvx --from mcp-contextforge-gateway python3 -m mcpgateway.utils.create_jwt_token \
-  --username admin@test.local \
   --exp 10080 \
-  --secret test-secret-key-for-integration-testing > "$PROJECT_ROOT/tmp/contextforge-test-token.txt" 2>&1
+  --secret test-secret-key-for-integration-testing \
+  --data '{"username": "admin@test.local", "team_ids": [], "is_admin": true}' > "$PROJECT_ROOT/tmp/bootstrap-token.txt" 2>&1
 
 if [ $? -eq 0 ]; then
-  # Extract just the token (remove any extra output)
-  TOKEN=$(cat "$PROJECT_ROOT/tmp/contextforge-test-token.txt" | grep -o 'eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*' || cat "$PROJECT_ROOT/tmp/contextforge-test-token.txt")
-  echo "$TOKEN" > "$PROJECT_ROOT/tmp/contextforge-test-token.txt"
-  export CONTEXTFORGE_TEST_TOKEN="$TOKEN"
-  echo "✅ JWT token generated successfully"
+  # Extract bootstrap token
+  BOOTSTRAP_TOKEN=$(cat "$PROJECT_ROOT/tmp/bootstrap-token.txt" | grep -o 'eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*' || cat "$PROJECT_ROOT/tmp/bootstrap-token.txt")
+
+  # Step 2: Use bootstrap token to create proper API token with full scopes
+  echo "  Creating API token with proper scopes..."
+  API_RESPONSE=$(curl -s -X POST http://localhost:8000/tokens \
+    -H "Authorization: Bearer $BOOTSTRAP_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"name": "integration-test-token", "expires_in": 10080}')
+
+  # Extract the access token from API response
+  TOKEN=$(echo "$API_RESPONSE" | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+
+  if [ -n "$TOKEN" ]; then
+    # Save the API-generated token (without newline)
+    printf "%s" "$TOKEN" > "$PROJECT_ROOT/tmp/contextforge-test-token.txt"
+    export CONTEXTFORGE_TEST_TOKEN="$TOKEN"
+    echo "✅ API token with full scopes generated successfully"
+
+    # Clean up bootstrap token
+    rm -f "$PROJECT_ROOT/tmp/bootstrap-token.txt"
+  else
+    echo "⚠️  Failed to create API token, falling back to bootstrap token"
+    printf "%s" "$BOOTSTRAP_TOKEN" > "$PROJECT_ROOT/tmp/contextforge-test-token.txt"
+    export CONTEXTFORGE_TEST_TOKEN="$BOOTSTRAP_TOKEN"
+    rm -f "$PROJECT_ROOT/tmp/bootstrap-token.txt"
+  fi
 else
-  echo "⚠️  Failed to generate JWT token, tests may fail"
-  cat "$PROJECT_ROOT/tmp/contextforge-test-token.txt"
+  echo "⚠️  Failed to generate bootstrap token, tests may fail"
+  cat "$PROJECT_ROOT/tmp/bootstrap-token.txt"
 fi
 echo ""
 
-echo "📊 Gateway Information:"
-echo "   Address: http://localhost:8000"
+echo "📊 Test Environment Information:"
+echo "   ContextForge Address: http://localhost:8000"
+echo "   ContextForge PID: $GATEWAY_PID"
 echo "   Admin Email: admin@test.local"
 echo "   Admin Password: testpassword123"
-echo "   PID: $GATEWAY_PID"
-echo "   Token File: $PROJECT_ROOT/tmp/contextforge-test-token.txt"
+echo "   JWT Token File: $PROJECT_ROOT/tmp/contextforge-test-token.txt"
 echo ""
 
 # Get version info
-echo "🔍 Gateway Version:"
-curl -s -u admin@test.local:testpassword123 http://localhost:8000/version | jq . || echo "Version endpoint unavailable"
+echo "🔍 Gateway Version: $(curl -s -u admin@test.local:testpassword123 http://localhost:8000/version | jq -r .app.version || echo \"Version endpoint unavailable\")"
 echo ""
 
 echo "✨ Test environment is ready for integration tests!"
