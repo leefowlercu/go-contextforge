@@ -67,7 +67,7 @@ merge_changelog() {
             # Save previous section if it has content
             if [ -n "$current_section" ] && [ -n "$section_content" ]; then
                 all_content+="### ${current_section}"$'\n'
-                all_content+="${section_content}"$'\n'
+                all_content+="${section_content}"
             fi
 
             # Start new section
@@ -89,7 +89,7 @@ merge_changelog() {
     # Add final section
     if [ -n "$current_section" ] && [ -n "$section_content" ]; then
         all_content+="### ${current_section}"$'\n'
-        all_content+="${section_content}"$'\n'
+        all_content+="${section_content}"
     fi
 
     # Edge case 4: No content extracted

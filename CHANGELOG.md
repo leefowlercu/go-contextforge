@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix(release): create tag after commit amend to prevent tag drift
 - Fix(release): create temporary tag for goreleaser validation
 
-
 ## [0.6.1] - 2025-11-19
 
 ### Fixed
