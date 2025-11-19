@@ -7,30 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.1] - 2025-11-19
 
-### Added
-- Feat: add hybrid rest endpoint methods for resources and prompts
-- Feat: move from "base url" to "address" in client configuration and codebase references
-
 ### Fixed
 - Fix(tools): remove incorrect wrapper from update request body
-
-### Documentation
-- Docs: add info about mcp and expand a2a section in readme
-- Docs: move claude instructions to project root
-- Docs: update documentation for hybrid rest endpoints
-- Docs: update project documentation
-- Docs: update toc in readme
-
-### Build
-- Build: update prepare release script to automatically merge goreleaser-created changelog contents into root changelog
 
 ### Tests
 - Test(integration): add proper assertions to update operation tests
 - Test(integration): improve token generation and output formatting
-- Test: add integration tests for hybrid endpoint methods
-- Test: add unit tests for hybrid endpoint methods
-- Test: update output text in integration test setup script
-
 
 ## [0.6.0] - 2025-11-13
 
