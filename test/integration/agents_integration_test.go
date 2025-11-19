@@ -6,6 +6,7 @@ package integration
 import (
 	"context"
 	"net/http"
+	"reflect"
 	"testing"
 
 	"github.com/leefowlercu/go-contextforge/contextforge"
@@ -125,9 +126,11 @@ func TestAgentsService_BasicCRUD(t *testing.T) {
 		created := createTestAgent(t, client, randomAgentName())
 
 		// Update the agent
+		expectedDescription := "Updated description for integration test"
+		expectedTags := []string{"updated", "integration-test"}
 		update := &contextforge.AgentUpdate{
-			Description: contextforge.String("Updated description for integration test"),
-			Tags:        []string{"updated", "integration-test"},
+			Description: contextforge.String(expectedDescription),
+			Tags:        expectedTags,
 		}
 
 		updated, _, err := client.Agents.Update(ctx, created.ID, update)
@@ -135,11 +138,12 @@ func TestAgentsService_BasicCRUD(t *testing.T) {
 			t.Fatalf("Failed to update agent: %v", err)
 		}
 
-		if updated.Description != nil {
-			t.Logf("Updated description: %s", *updated.Description)
+		// Assert that updates actually persisted
+		if updated.Description == nil || *updated.Description != expectedDescription {
+			t.Errorf("Expected description %q, got %v", expectedDescription, updated.Description)
 		}
-		if len(updated.Tags) > 0 {
-			t.Logf("Updated tags: %v", updated.Tags)
+		if !reflect.DeepEqual(updated.Tags, expectedTags) {
+			t.Errorf("Expected tags %v, got %v", expectedTags, updated.Tags)
 		}
 
 		t.Logf("Successfully updated agent: %s (ID: %s)", updated.Name, updated.ID)
@@ -603,8 +607,15 @@ func TestAgentsService_EdgeCases(t *testing.T) {
 			t.Fatalf("Failed to update agent capabilities: %v", err)
 		}
 
+		// Assert that capabilities were actually updated
 		if updated.Capabilities == nil {
-			t.Error("Expected updated agent to have capabilities")
+			t.Fatal("Expected updated agent to have capabilities")
+		}
+		if streaming, ok := updated.Capabilities["streaming"].(bool); !ok || !streaming {
+			t.Errorf("Expected capabilities[\"streaming\"] to be true, got %v", updated.Capabilities["streaming"])
+		}
+		if batch, ok := updated.Capabilities["batch"].(bool); !ok || batch {
+			t.Errorf("Expected capabilities[\"batch\"] to be false, got %v", updated.Capabilities["batch"])
 		}
 
 		t.Logf("Successfully updated agent capabilities: %+v", updated.Capabilities)
@@ -625,8 +636,16 @@ func TestAgentsService_EdgeCases(t *testing.T) {
 			t.Fatalf("Failed to update agent config: %v", err)
 		}
 
+		// Assert that config was actually updated
 		if updated.Config == nil {
-			t.Error("Expected updated agent to have config")
+			t.Fatal("Expected updated agent to have config")
+		}
+		// Config values might be float64 due to JSON unmarshaling
+		if timeout, ok := updated.Config["timeout"].(float64); !ok || int(timeout) != 60 {
+			t.Errorf("Expected config[\"timeout\"] to be 60, got %v (type: %T)", updated.Config["timeout"], updated.Config["timeout"])
+		}
+		if retries, ok := updated.Config["retries"].(float64); !ok || int(retries) != 5 {
+			t.Errorf("Expected config[\"retries\"] to be 5, got %v (type: %T)", updated.Config["retries"], updated.Config["retries"])
 		}
 
 		t.Logf("Successfully updated agent config: %+v", updated.Config)

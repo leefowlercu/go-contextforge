@@ -6,6 +6,7 @@ package integration
 import (
 	"context"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -96,9 +97,11 @@ func TestPromptsService_BasicCRUD(t *testing.T) {
 		created := createTestPrompt(t, client, randomPromptName())
 
 		// Update the prompt
+		expectedDescription := "Updated description for integration test"
+		expectedTags := []string{"updated", "integration-test"}
 		update := &contextforge.PromptUpdate{
-			Description: contextforge.String("Updated description for integration test"),
-			Tags:        []string{"updated", "integration-test"},
+			Description: contextforge.String(expectedDescription),
+			Tags:        expectedTags,
 		}
 
 		updated, _, err := client.Prompts.Update(ctx, created.ID, update)
@@ -106,11 +109,12 @@ func TestPromptsService_BasicCRUD(t *testing.T) {
 			t.Fatalf("Failed to update prompt: %v", err)
 		}
 
-		if updated.Description != nil {
-			t.Logf("Updated description: %s", *updated.Description)
+		// Assert that updates actually persisted
+		if updated.Description == nil || *updated.Description != expectedDescription {
+			t.Errorf("Expected description %q, got %v", expectedDescription, updated.Description)
 		}
-		if len(updated.Tags) > 0 {
-			t.Logf("Updated tags: %v", updated.Tags)
+		if !reflect.DeepEqual(updated.Tags, expectedTags) {
+			t.Errorf("Expected tags %v, got %v", expectedTags, updated.Tags)
 		}
 
 		t.Logf("Successfully updated prompt: %s (ID: %d)", updated.Name, updated.ID)

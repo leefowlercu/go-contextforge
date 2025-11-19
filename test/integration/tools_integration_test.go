@@ -6,6 +6,7 @@ package integration
 import (
 	"context"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -119,21 +120,22 @@ func TestToolsService_BasicCRUD(t *testing.T) {
 		created := createTestTool(t, client, randomToolName())
 
 		// Update the tool
-		created.Description = contextforge.String("Updated description for integration test")
-		created.Tags = []string{"updated", "integration-test"}
+		expectedDescription := "Updated description for integration test"
+		expectedTags := []string{"updated", "integration-test"}
+		created.Description = contextforge.String(expectedDescription)
+		created.Tags = expectedTags
 
 		updated, _, err := client.Tools.Update(ctx, created.ID, created)
 		if err != nil {
 			t.Fatalf("Failed to update tool: %v", err)
 		}
 
-		// Note: The API may not update all fields as expected
-		// Different implementations may have different behavior for updates
-		if updated.Description != nil {
-			t.Logf("Updated description: %s", *updated.Description)
+		// Assert that updates actually persisted
+		if updated.Description == nil || *updated.Description != expectedDescription {
+			t.Errorf("Expected description %q, got %v", expectedDescription, updated.Description)
 		}
-		if len(updated.Tags) > 0 {
-			t.Logf("Updated tags: %v", updated.Tags)
+		if !reflect.DeepEqual(updated.Tags, expectedTags) {
+			t.Errorf("Expected tags %v, got %v", expectedTags, updated.Tags)
 		}
 
 		t.Logf("Successfully updated tool: %s (ID: %s)", updated.Name, updated.ID)

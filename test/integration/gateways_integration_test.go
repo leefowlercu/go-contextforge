@@ -6,6 +6,7 @@ package integration
 import (
 	"context"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -204,19 +205,22 @@ func TestGatewaysService_BasicCRUD(t *testing.T) {
 		created := gatewayCreate(t, client, randomGatewayName())
 
 		// Update the gateway
-		created.Description = contextforge.String("Updated description for integration test")
-		created.Tags = []string{"updated", "integration-test"}
+		expectedDescription := "Updated description for integration test"
+		expectedTags := []string{"updated", "integration-test"}
+		created.Description = contextforge.String(expectedDescription)
+		created.Tags = expectedTags
 
 		updated, _, err := client.Gateways.Update(ctx, *created.ID, created)
 		if err != nil {
 			t.Fatalf("Failed to update gateway: %v", err)
 		}
 
-		if updated.Description != nil {
-			t.Logf("Updated description: %s", *updated.Description)
+		// Assert that updates actually persisted
+		if updated.Description == nil || *updated.Description != expectedDescription {
+			t.Errorf("Expected description %q, got %v", expectedDescription, updated.Description)
 		}
-		if len(updated.Tags) > 0 {
-			t.Logf("Updated tags: %v", updated.Tags)
+		if !reflect.DeepEqual(updated.Tags, expectedTags) {
+			t.Errorf("Expected tags %v, got %v", expectedTags, updated.Tags)
 		}
 
 		t.Logf("Successfully updated gateway: %s (ID: %s)", updated.Name, *updated.ID)
