@@ -207,10 +207,16 @@ COMMIT_MESSAGE="release: prepare ${VERSION}"
 git commit -m "$COMMIT_MESSAGE"
 echo -e "${GREEN}Created commit: $COMMIT_MESSAGE${NC}"
 
-# Check for GoReleaser and GITHUB_TOKEN (before creating tag)
+# Create temporary tag for GoReleaser validation (will be recreated after amending)
+echo -e "${YELLOW}Creating temporary git tag ${VERSION} for GoReleaser...${NC}"
+git tag -a "$VERSION" -m "Go ContextForge SDK $VERSION"
+echo -e "${GREEN}Created temporary tag: $VERSION${NC}"
+
+# Check for GoReleaser and GITHUB_TOKEN
 if ! command -v goreleaser &> /dev/null; then
     echo -e "${RED}Error: goreleaser is not installed${NC}"
     echo -e "${YELLOW}Install with: go install github.com/goreleaser/goreleaser/v2@latest${NC}"
+    git tag -d "$VERSION"
     git reset --hard HEAD~1
     exit 1
 fi
@@ -223,7 +229,8 @@ if [ -z "$GITHUB_TOKEN" ]; then
     echo -e "${YELLOW}Continue anyway? Release will fail but you can retry later. (y/N)${NC}"
     read -r response
     if [[ ! "$response" =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}Undoing commit...${NC}"
+        echo -e "${YELLOW}Undoing tag and commit...${NC}"
+        git tag -d "$VERSION"
         git reset --hard HEAD~1
         exit 1
     fi
@@ -233,7 +240,8 @@ fi
 echo -e "${YELLOW}Running GoReleaser...${NC}"
 if ! goreleaser release --clean; then
     echo -e "${RED}Error: GoReleaser failed${NC}"
-    echo -e "${YELLOW}Undoing commit...${NC}"
+    echo -e "${YELLOW}Undoing tag and commit...${NC}"
+    git tag -d "$VERSION"
     git reset --hard HEAD~1
     exit 1
 fi
@@ -244,7 +252,8 @@ echo -e "${GREEN}GoReleaser completed successfully!${NC}"
 echo -e "${YELLOW}Merging changelog...${NC}"
 if ! merge_changelog "$VERSION"; then
     echo -e "${RED}Error: Changelog merge failed${NC}"
-    echo -e "${YELLOW}Undoing commit...${NC}"
+    echo -e "${YELLOW}Undoing tag and commit...${NC}"
+    git tag -d "$VERSION"
     git reset --hard HEAD~1
     exit 1
 fi
@@ -256,10 +265,11 @@ git add CHANGELOG.md
 git commit --amend --no-edit
 echo -e "${GREEN}Updated release commit with changelog${NC}"
 
-# Create annotated tag (after commit is amended so tag points to final commit)
-echo -e "${YELLOW}Creating git tag ${VERSION}...${NC}"
+# Delete temporary tag and recreate on amended commit (so tag points to final commit hash)
+echo -e "${YELLOW}Recreating git tag ${VERSION} on final commit...${NC}"
+git tag -d "$VERSION"
 git tag -a "$VERSION" -m "Go ContextForge SDK $VERSION"
-echo -e "${GREEN}Created annotated tag: $VERSION${NC}"
+echo -e "${GREEN}Created final tag: $VERSION${NC}"
 
 # Display next steps
 echo ""
