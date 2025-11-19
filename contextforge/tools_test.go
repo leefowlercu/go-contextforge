@@ -138,11 +138,11 @@ func TestToolsService_Update(t *testing.T) {
 	mux.HandleFunc("/tools/123", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "PUT")
 
-		// Verify the request body has the tool wrapped in "tool" key
-		var body map[string]*Tool
+		// Verify the request body has the tool directly (not wrapped)
+		var body Tool
 		json.NewDecoder(r.Body).Decode(&body)
-		if body["tool"] == nil {
-			t.Error("Expected request body to have 'tool' key")
+		if body.Name != "updated-tool" {
+			t.Errorf("Expected tool name 'updated-tool', got %q", body.Name)
 		}
 
 		w.Header().Set("Content-Type", "application/json")

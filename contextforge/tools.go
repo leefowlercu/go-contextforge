@@ -92,8 +92,8 @@ func (s *ToolsService) Create(ctx context.Context, tool *Tool, opts *ToolCreateO
 func (s *ToolsService) Update(ctx context.Context, toolID string, tool *Tool) (*Tool, *Response, error) {
 	u := fmt.Sprintf("tools/%s", url.PathEscape(toolID))
 
-	// Wrap the tool in a "tool" key as the API expects
-	body := map[string]*Tool{"tool": tool}
+	// Send the tool directly (UPDATE endpoint does not use wrapper, unlike CREATE)
+	body := tool
 
 	req, err := s.client.NewRequest(http.MethodPut, u, body)
 	if err != nil {

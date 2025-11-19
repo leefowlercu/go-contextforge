@@ -377,20 +377,19 @@ func setupMockEndpoints(mux *http.ServeMux) {
 				return
 			}
 
-			var req struct {
-				Tool *contextforge.Tool `json:"tool"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			// Decode tool directly (UPDATE endpoint does not use wrapper)
+			var updateTool contextforge.Tool
+			if err := json.NewDecoder(r.Body).Decode(&updateTool); err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 
 			// Update fields
-			if req.Tool.Description != nil {
-				tool.Description = req.Tool.Description
+			if updateTool.Description != nil {
+				tool.Description = updateTool.Description
 			}
-			if req.Tool.Tags != nil {
-				tool.Tags = req.Tool.Tags
+			if updateTool.Tags != nil {
+				tool.Tags = updateTool.Tags
 			}
 			tool.UpdatedAt = &contextforge.Timestamp{Time: time.Now()}
 
