@@ -61,7 +61,10 @@ The SDK follows the **service-oriented architecture pattern** established by `go
 **Custom Types** (`contextforge/types.go`):
 - `FlexibleID`: Handles API inconsistencies where IDs may be integers or strings
 - `Timestamp`: Custom timestamp parsing for API responses without timezone information
-- `Pointer helpers`: `String()`, `Int()`, `Bool()`, `Time()` for creating pointers; `StringValue()`, `IntValue()`, `BoolValue()`, `TimeValue()` for safe dereferencing with default values
+
+**Pointer Helpers** (`contextforge/pointers.go`):
+- `String()`, `Int()`, `Bool()`, `Time()` for creating pointers
+- `StringValue()`, `IntValue()`, `BoolValue()`, `TimeValue()` for safe dereferencing with default values
 
 **Rate Limiting**:
 - Tracked per-endpoint path in `Client.rateLimits`
@@ -84,6 +87,12 @@ The SDK supports two pagination patterns based on API endpoint design:
 - `RateLimitError`: Specialized error for rate limiting
 - `CheckResponse()`: Validates HTTP responses and returns typed errors
 - URL sanitization to prevent token leakage in error messages
+
+**Additional Core Files**:
+- `contextforge/pointers.go` - Pointer helper utilities for working with optional fields
+- `contextforge/errors.go` - Error types: `ErrorResponse`, `RateLimitError`, `CheckResponse()`
+- `contextforge/doc.go` - Package-level documentation
+- `contextforge/version.go` - SDK version constant used in User-Agent header
 
 ## Development Commands
 
