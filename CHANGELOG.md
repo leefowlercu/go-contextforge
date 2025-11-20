@@ -9,9 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix: enable clearing array fields in update operations
+
 ### Documentation
 - Docs: fix server creation example and add missing api methods
 - Docs: update architecture documentation with correct file locations
+
 ### Build
 - Build: update prepare release script and fix changelog
 

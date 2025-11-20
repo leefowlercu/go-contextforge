@@ -44,3 +44,6 @@ Thumbs.db
 # Release workflow temporary files
 .next-version
 dist/
+
+# Integration test files
+tmp/
