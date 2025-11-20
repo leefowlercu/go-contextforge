@@ -198,7 +198,7 @@ type Tool struct {
 	Enabled     bool           `json:"enabled,omitempty"`
 	TeamID      *string        `json:"teamId,omitempty"`
 	Visibility  string         `json:"visibility,omitempty"`
-	Tags        []string       `json:"tags,omitempty"`
+	Tags        []string       `json:"tags"`
 	CreatedAt   *Timestamp     `json:"createdAt,omitempty"`
 	UpdatedAt   *Timestamp     `json:"updatedAt,omitempty"`
 }
@@ -302,7 +302,7 @@ type ResourceUpdate struct {
 	MimeType    *string  `json:"mimeType,omitempty"`
 	Template    *string  `json:"template,omitempty"`
 	Content     any      `json:"content,omitempty"` // Can be string or binary data
-	Tags        []string `json:"tags,omitempty"`
+	Tags        []string `json:"tags"`
 }
 
 // ResourceCreateOptions specifies additional options for creating a resource.
@@ -489,13 +489,13 @@ type ServerUpdate struct {
 	Name        *string  `json:"name,omitempty"`
 	Description *string  `json:"description,omitempty"`
 	Icon        *string  `json:"icon,omitempty"`
-	Tags        []string `json:"tags,omitempty"`
+	Tags        []string `json:"tags"`
 
 	// Association fields (camelCase per API spec)
-	AssociatedTools     []string `json:"associatedTools,omitempty"`
-	AssociatedResources []string `json:"associatedResources,omitempty"`
-	AssociatedPrompts   []string `json:"associatedPrompts,omitempty"`
-	AssociatedA2aAgents []string `json:"associatedA2aAgents,omitempty"`
+	AssociatedTools     []string `json:"associatedTools"`
+	AssociatedResources []string `json:"associatedResources"`
+	AssociatedPrompts   []string `json:"associatedPrompts"`
+	AssociatedA2aAgents []string `json:"associatedA2aAgents"`
 
 	// Organizational fields (camelCase per API spec)
 	TeamID     *string `json:"teamId,omitempty"`
@@ -610,8 +610,8 @@ type PromptUpdate struct {
 	Name        *string          `json:"name,omitempty"`
 	Description *string          `json:"description,omitempty"`
 	Template    *string          `json:"template,omitempty"`
-	Arguments   []PromptArgument `json:"arguments,omitempty"`
-	Tags        []string         `json:"tags,omitempty"`
+	Arguments   []PromptArgument `json:"arguments"`
+	Tags        []string         `json:"tags"`
 
 	// Organizational fields (camelCase per API spec)
 	TeamID     *string `json:"teamId,omitempty"`
@@ -738,7 +738,7 @@ type AgentUpdate struct {
 	Config          map[string]any `json:"config,omitempty"`
 	AuthType        *string        `json:"authType,omitempty"`
 	AuthValue       *string        `json:"authValue,omitempty"`
-	Tags            []string       `json:"tags,omitempty"`
+	Tags            []string       `json:"tags"`
 	TeamID          *string        `json:"teamId,omitempty"`
 	OwnerEmail      *string        `json:"ownerEmail,omitempty"`
 	Visibility      *string        `json:"visibility,omitempty"`
