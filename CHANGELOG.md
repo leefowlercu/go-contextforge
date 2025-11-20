@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.3] - 2025-11-20
+
+### Fixed
+- Fix: enable clearing array fields in update operations
+### Documentation
+- Docs: fix server creation example and add missing api methods
+- Docs: update architecture documentation with correct file locations
+### Build
+- Build: update prepare release script and fix changelog
+
 ## [0.6.2] - 2025-11-19
 
 ### Fixed
@@ -103,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial commit, add contextforge api client sdk, add gateways, servers, prompts, resources, and tools services, add integration test suite, add unit tests
 
+[0.6.3]: https://github.com/leefowlercu/go-contextforge/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/leefowlercu/go-contextforge/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/leefowlercu/go-contextforge/compare/v0.4.0...v0.6.1
 [0.6.0]: https://github.com/leefowlercu/go-contextforge/compare/v0.4.0...v0.6.0
