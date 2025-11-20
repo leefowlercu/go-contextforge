@@ -198,7 +198,7 @@ type Tool struct {
 	Enabled     bool           `json:"enabled,omitempty"`
 	TeamID      *string        `json:"teamId,omitempty"`
 	Visibility  string         `json:"visibility,omitempty"`
-	Tags        []string       `json:"tags"`
+	Tags        []string       `json:"tags,omitempty"`
 	CreatedAt   *Timestamp     `json:"createdAt,omitempty"`
 	UpdatedAt   *Timestamp     `json:"updatedAt,omitempty"`
 }
@@ -293,6 +293,17 @@ type ResourceCreate struct {
 }
 
 // ResourceUpdate represents the request body for updating a resource.
+//
+// All fields are optional. The SDK uses a three-state semantics pattern:
+//   - nil pointer/slice: field will not be updated (omitted from request)
+//   - pointer to zero value or empty slice: field will be cleared/set to empty
+//   - pointer to value or populated slice: field will be set to that value
+//
+// Examples:
+//   - Don't update tags: Tags = nil
+//   - Clear all tags: Tags = []string{}
+//   - Set specific tags: Tags = []string{"tag1", "tag2"}
+//
 // Note: Uses camelCase field names as required by the API.
 type ResourceUpdate struct {
 	// All fields optional (camelCase per API spec)
@@ -302,7 +313,7 @@ type ResourceUpdate struct {
 	MimeType    *string  `json:"mimeType,omitempty"`
 	Template    *string  `json:"template,omitempty"`
 	Content     any      `json:"content,omitempty"` // Can be string or binary data
-	Tags        []string `json:"tags"`
+	Tags        []string `json:"tags,omitempty"`
 }
 
 // ResourceCreateOptions specifies additional options for creating a resource.
@@ -484,18 +495,24 @@ type ServerCreate struct {
 }
 
 // ServerUpdate represents the request body for updating a server.
+//
+// All fields are optional. The SDK uses a three-state semantics pattern:
+//   - nil pointer/slice: field will not be updated (omitted from request)
+//   - pointer to zero value or empty slice: field will be cleared/set to empty
+//   - pointer to value or populated slice: field will be set to that value
+//
 // Note: Uses camelCase field names as required by the API.
 type ServerUpdate struct {
 	Name        *string  `json:"name,omitempty"`
 	Description *string  `json:"description,omitempty"`
 	Icon        *string  `json:"icon,omitempty"`
-	Tags        []string `json:"tags"`
+	Tags        []string `json:"tags,omitempty"`
 
 	// Association fields (camelCase per API spec)
-	AssociatedTools     []string `json:"associatedTools"`
-	AssociatedResources []string `json:"associatedResources"`
-	AssociatedPrompts   []string `json:"associatedPrompts"`
-	AssociatedA2aAgents []string `json:"associatedA2aAgents"`
+	AssociatedTools     []string `json:"associatedTools,omitempty"`
+	AssociatedResources []string `json:"associatedResources,omitempty"`
+	AssociatedPrompts   []string `json:"associatedPrompts,omitempty"`
+	AssociatedA2aAgents []string `json:"associatedA2aAgents,omitempty"`
 
 	// Organizational fields (camelCase per API spec)
 	TeamID     *string `json:"teamId,omitempty"`
@@ -605,13 +622,19 @@ type PromptCreate struct {
 }
 
 // PromptUpdate represents the request body for updating a prompt.
+//
+// All fields are optional. The SDK uses a three-state semantics pattern:
+//   - nil pointer/slice: field will not be updated (omitted from request)
+//   - pointer to zero value or empty slice: field will be cleared/set to empty
+//   - pointer to value or populated slice: field will be set to that value
+//
 // Note: Uses camelCase field names as required by the API.
 type PromptUpdate struct {
 	Name        *string          `json:"name,omitempty"`
 	Description *string          `json:"description,omitempty"`
 	Template    *string          `json:"template,omitempty"`
-	Arguments   []PromptArgument `json:"arguments"`
-	Tags        []string         `json:"tags"`
+	Arguments   []PromptArgument `json:"arguments,omitempty"`
+	Tags        []string         `json:"tags,omitempty"`
 
 	// Organizational fields (camelCase per API spec)
 	TeamID     *string `json:"teamId,omitempty"`
@@ -726,6 +749,12 @@ type AgentCreate struct {
 }
 
 // AgentUpdate represents the request body for updating an agent.
+//
+// All fields are optional. The SDK uses a three-state semantics pattern:
+//   - nil pointer/slice: field will not be updated (omitted from request)
+//   - pointer to zero value or empty slice: field will be cleared/set to empty
+//   - pointer to value or populated slice: field will be set to that value
+//
 // Note: Uses camelCase field names as required by the API.
 type AgentUpdate struct {
 	// All fields optional (camelCase per API spec)
@@ -738,7 +767,7 @@ type AgentUpdate struct {
 	Config          map[string]any `json:"config,omitempty"`
 	AuthType        *string        `json:"authType,omitempty"`
 	AuthValue       *string        `json:"authValue,omitempty"`
-	Tags            []string       `json:"tags"`
+	Tags            []string       `json:"tags,omitempty"`
 	TeamID          *string        `json:"teamId,omitempty"`
 	OwnerEmail      *string        `json:"ownerEmail,omitempty"`
 	Visibility      *string        `json:"visibility,omitempty"`
@@ -806,6 +835,11 @@ type TeamCreate struct {
 }
 
 // TeamUpdate represents the request body for updating a team.
+//
+// All fields are optional. The SDK uses a three-state semantics pattern:
+//   - nil pointer: field will not be updated (omitted from request)
+//   - pointer to zero value: field will be cleared/set to empty
+//   - pointer to value: field will be set to that value
 type TeamUpdate struct {
 	Name        *string `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
