@@ -160,18 +160,55 @@ if err != nil {
 
 ### Pointer Helpers
 
-The SDK provides helper functions for working with optional fields:
+The SDK uses pointers and slices to distinguish between three states for optional fields:
+
+1. **nil** - field not set (omitted from API request)
+2. **pointer to zero value or empty slice** - field explicitly cleared
+3. **pointer to value or populated slice** - field set to that value
+
+This pattern (used by google/go-github, hashicorp/go-tfe, AWS SDK) enables partial updates where only changed fields are sent to the API.
+
+**Helper functions:**
 
 ```go
-// Create pointers from values
+// Creating pointers (for setting values)
 name := contextforge.String("my-tool")
 limit := contextforge.Int(10)
 enabled := contextforge.Bool(true)
+timeout := contextforge.Int64(3000)
+weight := contextforge.Float64(0.95)
+timestamp := contextforge.Time(time.Now())
 
-// Extract values from pointers (with zero-value fallback)
+// Extracting values (with zero-value fallback for nil)
 nameStr := contextforge.StringValue(name)      // "my-tool"
 limitInt := contextforge.IntValue(nil)         // 0
 enabledBool := contextforge.BoolValue(enabled) // true
+```
+
+**Partial update examples:**
+
+```go
+// Update only the name (other fields unchanged)
+update := &contextforge.ResourceUpdate{
+    Name: contextforge.String("new-name"),
+    // Description, Tags, etc. are nil and won't be sent
+}
+
+// Clear the description (set to empty string)
+update := &contextforge.ResourceUpdate{
+    Description: contextforge.String(""),
+}
+
+// Don't update tags vs clear all tags
+update1 := &contextforge.ResourceUpdate{
+    Tags: nil,        // Tags field omitted - existing tags unchanged
+}
+update2 := &contextforge.ResourceUpdate{
+    Tags: []string{}, // Empty array sent - clears all tags
+}
+update3 := &contextforge.ResourceUpdate{
+    Tags: []string{"new-tag"}, // Sets new tags
+}
 ```
 
 ### Managing Tools

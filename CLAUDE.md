@@ -23,6 +23,7 @@ This file provides guidance to Claude Code when working with code in this reposi
   - [Skipped Integration Tests](#skipped-integration-tests)
 - [Adding New Services](#adding-new-services)
 - [API Patterns](#api-patterns)
+- [Three-State System for Optional Fields](#three-state-system-for-optional-fields)
 - [MCP Protocol vs REST API Endpoints](#mcp-protocol-vs-rest-api-endpoints)
   - [1. REST API Management Endpoints (IMPLEMENT IN SDK)](#1-rest-api-management-endpoints-implement-in-sdk)
   - [2. MCP Protocol/Client Endpoints (DO NOT IMPLEMENT)](#2-mcp-protocolclient-endpoints-do-not-implement)
@@ -63,8 +64,9 @@ The SDK follows the **service-oriented architecture pattern** established by `go
 - `Timestamp`: Custom timestamp parsing for API responses without timezone information
 
 **Pointer Helpers** (`contextforge/pointers.go`):
-- `String()`, `Int()`, `Bool()`, `Time()` for creating pointers
-- `StringValue()`, `IntValue()`, `BoolValue()`, `TimeValue()` for safe dereferencing with default values
+- Creating pointers: `String()`, `Int()`, `Int64()`, `Bool()`, `Float64()`, `Time()`
+- Safe dereferencing: `StringValue()`, `IntValue()`, `Int64Value()`, `BoolValue()`, `Float64Value()`, `TimeValue()`
+- Enables three-state semantics for optional fields (see [Three-State System](#three-state-system-for-optional-fields))
 
 **Rate Limiting**:
 - Tracked per-endpoint path in `Client.rateLimits`
@@ -93,6 +95,8 @@ The SDK supports two pagination patterns based on API endpoint design:
 - `contextforge/errors.go` - Error types: `ErrorResponse`, `RateLimitError`, `CheckResponse()`
 - `contextforge/doc.go` - Package-level documentation
 - `contextforge/version.go` - SDK version constant used in User-Agent header
+- `docs/three-state-system.md` - Comprehensive guide to three-state semantics pattern
+- `docs/terraform-provider-usage.md` - Guide for building Terraform providers with the SDK
 
 ## Development Commands
 
@@ -407,6 +411,83 @@ Follow existing service implementations as patterns:
 ## API Patterns
 
 Some API endpoints require request body wrapping (e.g., `{"tool": {...}}`). Check OpenAPI spec (`reference/contextforge-openapi-v0.8.0.json`) or existing service implementations for wrapping requirements.
+
+## Three-State System for Optional Fields
+
+The SDK uses a **three-state semantics pattern** for optional fields in update operations, enabling precise control over which fields are included in API requests:
+
+1. **nil pointer/slice** - Field omitted from request (don't update existing value)
+2. **Pointer to zero value or empty slice** - Field cleared/set to empty
+3. **Pointer to value or populated slice** - Field set to specific value
+
+This pattern is the **industry standard** used by major Go SDKs (google/go-github, hashicorp/go-tfe, AWS SDK) and is essential for:
+- **Partial updates** - Only changed fields sent to API
+- **Supporting Terraform's `ignore_changes`** - Critical for Terraform provider development
+- **Clear semantics** - Explicit distinction between clearing vs not updating array fields
+- **Minimal API calls** - Efficient resource management
+
+### Quick Examples
+
+```go
+// Update only name, leave other fields unchanged
+update := &contextforge.ResourceUpdate{
+    Name: contextforge.String("new-name"),
+    // Description is nil - won't be sent to API
+    // Tags is nil - won't be sent to API
+}
+
+// Clear description and all tags
+update := &contextforge.ResourceUpdate{
+    Description: contextforge.String(""),  // Sends empty string - clears description
+    Tags: []string{},                       // Sends empty array - clears all tags
+}
+
+// Don't update tags vs clear all tags (critical distinction)
+update1 := &contextforge.ResourceUpdate{
+    Name: contextforge.String("new-name"),
+    Tags: nil,        // Tags field omitted - existing tags unchanged
+}
+
+update2 := &contextforge.ResourceUpdate{
+    Name: contextforge.String("new-name"),
+    Tags: []string{}, // Tags field sent as [] - clears all tags
+}
+```
+
+### Implementation Details
+
+All Update structs (`ResourceUpdate`, `ServerUpdate`, `PromptUpdate`, `AgentUpdate`, `TeamUpdate`) follow this pattern:
+
+- **Scalar optional fields** - Use pointers with `omitempty` JSON tag
+  - `nil` → field omitted from JSON
+  - `&""` → field included as `""` (clears field)
+  - `&"value"` → field included as `"value"`
+
+- **Array optional fields** - Use direct slices with `omitempty` JSON tag
+  - `nil` → field omitted from JSON (don't update)
+  - `[]string{}` → field included as `[]` (clear all items)
+  - `[]string{"a", "b"}` → field included with values (replace items)
+
+- **Map optional fields** - Use direct maps with `omitempty` JSON tag
+  - Same semantics as arrays
+
+**Critical Fix in v0.6.3:** Restored `omitempty` to array fields in Update structs, enabling the ability to clear arrays by sending empty slices. Prior to v0.6.3, empty arrays were incorrectly omitted from requests.
+
+### Documentation
+
+- **[docs/three-state-system.md](docs/three-state-system.md)** - Comprehensive guide with examples, common pitfalls, testing strategies
+- **[docs/terraform-provider-usage.md](docs/terraform-provider-usage.md)** - How to use SDK in Terraform providers with Plugin Framework
+- **[contextforge/pointers.go](contextforge/pointers.go)** - Package-level documentation and helper functions
+
+### Why This Matters
+
+When building a Terraform provider (or any declarative tool), you need to distinguish between:
+
+1. **User removed field from config** → Don't update (send nil)
+2. **User set field to empty** → Clear field (send empty value)
+3. **User set field to value** → Update field (send value)
+
+The three-state system provides the **mechanism** at the SDK level. Your provider code implements the **policy** by conditionally setting fields to non-nil only when changed. This is how terraform-provider-github, terraform-provider-aws, and other major providers handle partial updates.
 
 ## MCP Protocol vs REST API Endpoints
 
