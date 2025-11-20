@@ -350,15 +350,17 @@ ctx := context.Background()
 servers, _, err := client.Servers.List(ctx, nil)
 
 // Create a server
-newServer := &contextforge.Server{
+newServer := &contextforge.ServerCreate{
     Name:        "my-server",
-    Command:     "/usr/bin/my-mcp-server",
     Description: contextforge.String("Custom MCP server"),
-    Args:        []string{"--port", "8080"},
-    Env: map[string]string{
-        "API_KEY": "secret-key",
-    },
-    Enabled: true,
+    Icon:        contextforge.String("server"),
+    Tags:        []string{"mcp", "production"},
+
+    // Optional: Associate with existing resources
+    AssociatedTools:     []string{"tool-id-1", "tool-id-2"},
+    AssociatedResources: []string{"resource-id-1"},
+    AssociatedPrompts:   []string{"prompt-id-1"},
+    AssociatedA2aAgents: []string{"agent-id-1"},
 }
 
 // Create with optional team/visibility settings
@@ -376,8 +378,9 @@ server, _, err := client.Servers.Get(ctx, "server-id")
 
 // Update server
 update := &contextforge.ServerUpdate{
-    Description: contextforge.String("Updated server description"),
-    Enabled:     contextforge.Bool(true),
+    Description:         contextforge.String("Updated server description"),
+    Tags:                []string{"mcp", "production", "updated"},
+    AssociatedTools:     []string{"tool-id-3"}, // Replace associations
 }
 updated, _, err := client.Servers.Update(ctx, "server-id", update)
 
@@ -777,6 +780,7 @@ if resp.Rate.Limit > 0 {
 | Method | Description |
 |--------|-------------|
 | `List(ctx, opts)` | List resources with pagination and filtering |
+| `Get(ctx, resourceID)` | Get resource content (returns MCP-compatible `ResourceContent`) |
 | `Create(ctx, resource, opts)` | Create a new resource with optional settings |
 | `Update(ctx, resourceID, resource)` | Update resource |
 | `Delete(ctx, resourceID)` | Delete resource |
@@ -813,6 +817,8 @@ if resp.Rate.Limit > 0 {
 | Method | Description |
 |--------|-------------|
 | `List(ctx, opts)` | List prompts with pagination and filtering |
+| `Get(ctx, promptID, args)` | Get rendered prompt with arguments (returns MCP-compatible `PromptResult`) |
+| `GetNoArgs(ctx, promptID)` | Get rendered prompt without arguments (returns MCP-compatible `PromptResult`) |
 | `Create(ctx, prompt, opts)` | Create a new prompt with optional settings |
 | `Update(ctx, promptID, prompt)` | Update prompt |
 | `Delete(ctx, promptID)` | Delete prompt |
