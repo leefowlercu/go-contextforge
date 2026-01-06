@@ -123,7 +123,7 @@ func TestServersService_Create(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"id":"456","name":"new-server","description":"A new server","isActive":true,"tags":["test"],"metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}`)
+		fmt.Fprint(w, `{"id":"456","name":"new-server","description":"A new server","isActive":true,"tags":[{"id":"test","label":"test"}],"metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}`)
 	})
 
 	ctx := context.Background()
@@ -411,7 +411,7 @@ func TestServersService_ListPrompts(t *testing.T) {
 	mux.HandleFunc("/servers/123/prompts", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `[{"id":1,"name":"test-prompt","template":"Hello {{name}}","arguments":[],"isActive":true,"tags":[],"metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}]`)
+		fmt.Fprint(w, `[{"id":"1","name":"test-prompt","template":"Hello {{name}}","arguments":[],"isActive":true,"tags":[],"metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}]`)
 	})
 
 	ctx := context.Background()

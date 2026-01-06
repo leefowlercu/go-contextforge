@@ -135,7 +135,7 @@ type toggleResourceResponse struct {
 	MimeType          *string     `json:"mime_type,omitempty"`
 	Size              *int        `json:"size,omitempty"`
 	IsActive          bool        `json:"is_active"`
-	Tags              []string    `json:"tags,omitempty"`
+	Tags              []Tag       `json:"tags,omitempty"`
 	TeamID            *string     `json:"team_id,omitempty"`
 	Team              *string     `json:"team,omitempty"`
 	OwnerEmail        *string     `json:"owner_email,omitempty"`

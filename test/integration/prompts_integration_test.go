@@ -32,7 +32,7 @@ func TestPromptsService_BasicCRUD(t *testing.T) {
 			cleanupPrompt(t, client, created.ID)
 		})
 
-		if created.ID == 0 {
+		if created.ID == "" {
 			t.Error("Expected created prompt to have an ID")
 		}
 		if created.Name != prompt.Name {
@@ -45,7 +45,7 @@ func TestPromptsService_BasicCRUD(t *testing.T) {
 			t.Error("Expected created prompt to have metrics")
 		}
 
-		t.Logf("Successfully created prompt: %s (ID: %d)", created.Name, created.ID)
+		t.Logf("Successfully created prompt: %s (ID: %s)", created.Name, created.ID)
 	})
 
 	t.Run("create prompt with all optional fields", func(t *testing.T) {
@@ -60,7 +60,7 @@ func TestPromptsService_BasicCRUD(t *testing.T) {
 			cleanupPrompt(t, client, created.ID)
 		})
 
-		if created.ID == 0 {
+		if created.ID == "" {
 			t.Error("Expected created prompt to have an ID")
 		}
 		if created.Visibility == nil || *created.Visibility != *prompt.Visibility {
@@ -73,7 +73,7 @@ func TestPromptsService_BasicCRUD(t *testing.T) {
 			t.Errorf("Expected %d arguments, got %d", len(prompt.Arguments), len(created.Arguments))
 		}
 
-		t.Logf("Successfully created prompt with all fields: %s (ID: %d)", created.Name, created.ID)
+		t.Logf("Successfully created prompt with all fields: %s (ID: %s)", created.Name, created.ID)
 	})
 
 	t.Run("list prompts", func(t *testing.T) {
@@ -117,7 +117,7 @@ func TestPromptsService_BasicCRUD(t *testing.T) {
 			t.Errorf("Expected tags %v, got %v", expectedTags, updated.Tags)
 		}
 
-		t.Logf("Successfully updated prompt: %s (ID: %d)", updated.Name, updated.ID)
+		t.Logf("Successfully updated prompt: %s (ID: %s)", updated.Name, updated.ID)
 	})
 
 	t.Run("delete prompt", func(t *testing.T) {
@@ -129,7 +129,7 @@ func TestPromptsService_BasicCRUD(t *testing.T) {
 			t.Fatalf("Failed to delete prompt: %v", err)
 		}
 
-		t.Logf("Successfully deleted prompt: %s (ID: %d)", created.Name, created.ID)
+		t.Logf("Successfully deleted prompt: %s (ID: %s)", created.Name, created.ID)
 	})
 
 	t.Run("list deleted prompt returns empty or excludes it", func(t *testing.T) {
@@ -153,7 +153,7 @@ func TestPromptsService_BasicCRUD(t *testing.T) {
 		// Verify the deleted prompt is not in the active list
 		for _, p := range prompts {
 			if p.ID == promptID {
-				t.Errorf("Deleted prompt %d should not be in active list", promptID)
+				t.Errorf("Deleted prompt %s should not be in active list", promptID)
 			}
 		}
 
@@ -422,7 +422,7 @@ func TestPromptsService_Pagination(t *testing.T) {
 
 	t.Run("pagination with cursor", func(t *testing.T) {
 		// Create several test prompts
-		var createdIDs []int
+		var createdIDs []string
 		for i := 0; i < 5; i++ {
 			created := createTestPrompt(t, client, randomPromptName())
 			createdIDs = append(createdIDs, created.ID)
@@ -456,14 +456,14 @@ func TestPromptsService_Pagination(t *testing.T) {
 			t.Logf("Second page returned %d prompts", len(nextPrompts))
 
 			// Verify pages don't overlap
-			firstIDs := make(map[int]bool)
+			firstIDs := make(map[string]bool)
 			for _, p := range prompts {
 				firstIDs[p.ID] = true
 			}
 
 			for _, p := range nextPrompts {
 				if firstIDs[p.ID] {
-					t.Errorf("Prompt %d appears in both pages (pagination overlap)", p.ID)
+					t.Errorf("Prompt %s appears in both pages (pagination overlap)", p.ID)
 				}
 			}
 
@@ -522,7 +522,7 @@ func TestPromptsService_ErrorHandling(t *testing.T) {
 			Description: contextforge.String("This should fail"),
 		}
 
-		_, _, err := client.Prompts.Update(ctx, 99999999, update)
+		_, _, err := client.Prompts.Update(ctx, "99999999", update)
 		if err == nil {
 			t.Error("Expected error when updating non-existent prompt")
 		}
@@ -538,7 +538,7 @@ func TestPromptsService_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("delete non-existent prompt returns 404", func(t *testing.T) {
-		_, err := client.Prompts.Delete(ctx, 99999999)
+		_, err := client.Prompts.Delete(ctx, "99999999")
 		if err == nil {
 			t.Error("Expected error when deleting non-existent prompt")
 		}
@@ -556,7 +556,7 @@ func TestPromptsService_ErrorHandling(t *testing.T) {
 	t.Run("toggle non-existent prompt returns 404", func(t *testing.T) {
 		t.Skip("Skipping due to upstream ContextForge bug - see docs/upstream-bugs/prompt-toggle-error-code.md")
 
-		_, _, err := client.Prompts.Toggle(ctx, 99999999, true)
+		_, _, err := client.Prompts.Toggle(ctx, "99999999", true)
 		if err == nil {
 			t.Error("Expected error when toggling non-existent prompt")
 		}

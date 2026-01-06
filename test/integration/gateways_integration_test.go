@@ -63,7 +63,7 @@ func gatewayCompleteInput(t *testing.T) *contextforge.Gateway {
 		Description: contextforge.String("A complete test gateway with all fields"),
 		Transport:   "STREAMABLEHTTP",
 		Visibility:  contextforge.String("public"),
-		Tags:        []string{"test", "integration"},
+		Tags:        contextforge.NewTags([]string{"test", "integration"}),
 		TeamID:      contextforge.String("test-team"),
 		AuthType:    contextforge.String("bearer"),
 		AuthToken:   contextforge.String("test-token-123"),
@@ -206,9 +206,9 @@ func TestGatewaysService_BasicCRUD(t *testing.T) {
 
 		// Update the gateway
 		expectedDescription := "Updated description for integration test"
-		expectedTags := []string{"updated", "integration-test"}
+		expectedTagNames := []string{"updated", "integration-test"}
 		created.Description = contextforge.String(expectedDescription)
-		created.Tags = expectedTags
+		created.Tags = contextforge.NewTags(expectedTagNames)
 
 		updated, _, err := client.Gateways.Update(ctx, *created.ID, created)
 		if err != nil {
@@ -219,8 +219,9 @@ func TestGatewaysService_BasicCRUD(t *testing.T) {
 		if updated.Description == nil || *updated.Description != expectedDescription {
 			t.Errorf("Expected description %q, got %v", expectedDescription, updated.Description)
 		}
-		if !reflect.DeepEqual(updated.Tags, expectedTags) {
-			t.Errorf("Expected tags %v, got %v", expectedTags, updated.Tags)
+		actualTagNames := contextforge.TagNames(updated.Tags)
+		if !reflect.DeepEqual(actualTagNames, expectedTagNames) {
+			t.Errorf("Expected tags %v, got %v", expectedTagNames, actualTagNames)
 		}
 
 		t.Logf("Successfully updated gateway: %s (ID: %s)", updated.Name, *updated.ID)

@@ -131,7 +131,7 @@ func TestAgentsService_Create(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"id":"456","name":"new-agent","slug":"new-agent","endpointUrl":"https://example.com/new-agent","description":"A new agent","agentType":"generic","protocolVersion":"1.0","enabled":true,"reachable":false,"tags":["test"]}`)
+		fmt.Fprint(w, `{"id":"456","name":"new-agent","slug":"new-agent","endpointUrl":"https://example.com/new-agent","description":"A new agent","agentType":"generic","protocolVersion":"1.0","enabled":true,"reachable":false,"tags":[{"id":"test","label":"test"}]}`)
 	})
 
 	ctx := context.Background()
@@ -213,7 +213,7 @@ func TestAgentsService_Update(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"id":"123","name":"test-agent","slug":"test-agent","endpointUrl":"https://example.com/agent","description":"Updated description","agentType":"generic","protocolVersion":"1.0","enabled":true,"reachable":true,"tags":["updated"]}`)
+		fmt.Fprint(w, `{"id":"123","name":"test-agent","slug":"test-agent","endpointUrl":"https://example.com/agent","description":"Updated description","agentType":"generic","protocolVersion":"1.0","enabled":true,"reachable":true,"tags":[{"id":"updated","label":"updated"}]}`)
 	})
 
 	ctx := context.Background()

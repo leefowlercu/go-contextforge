@@ -164,7 +164,7 @@ func completeToolInput() *contextforge.Tool {
 			"required": []string{"input"},
 		},
 		Visibility: "public",
-		Tags:       []string{"test", "integration"},
+		Tags:       contextforge.NewTags([]string{"test", "integration"}),
 		TeamID:     contextforge.String("test-team"),
 	}
 }
@@ -245,7 +245,7 @@ func completeGatewayInput() *contextforge.Gateway {
 		Description: contextforge.String("A complete test gateway with all fields"),
 		Transport:   "STREAMABLEHTTP",
 		Visibility:  contextforge.String("public"),
-		Tags:        []string{"test", "integration"},
+		Tags:        contextforge.NewTags([]string{"test", "integration"}),
 		TeamID:      contextforge.String("test-team"),
 		AuthType:    contextforge.String("bearer"),
 		AuthToken:   contextforge.String("test-token-123"),
@@ -503,7 +503,7 @@ func createTestPrompt(t *testing.T, client *contextforge.Client, name string) *c
 		t.Fatalf("Failed to create test prompt: %v", err)
 	}
 
-	t.Logf("Created test prompt: %s (ID: %d)", created.Name, created.ID)
+	t.Logf("Created test prompt: %s (ID: %s)", created.Name, created.ID)
 
 	// Register cleanup
 	t.Cleanup(func() {
@@ -514,20 +514,20 @@ func createTestPrompt(t *testing.T, client *contextforge.Client, name string) *c
 }
 
 // cleanupPrompt deletes a prompt by ID (ignores errors for cleanup)
-func cleanupPrompt(t *testing.T, client *contextforge.Client, promptID int) {
+func cleanupPrompt(t *testing.T, client *contextforge.Client, promptID string) {
 	t.Helper()
 
 	ctx := context.Background()
 	_, err := client.Prompts.Delete(ctx, promptID)
 	if err != nil {
-		t.Logf("Warning: Failed to cleanup prompt %d: %v (may already be deleted)", promptID, err)
+		t.Logf("Warning: Failed to cleanup prompt %s: %v (may already be deleted)", promptID, err)
 	} else {
-		t.Logf("Cleaned up prompt: %d", promptID)
+		t.Logf("Cleaned up prompt: %s", promptID)
 	}
 }
 
 // cleanupPrompts deletes multiple prompts by ID (ignores errors for cleanup)
-func cleanupPrompts(t *testing.T, client *contextforge.Client, promptIDs []int) {
+func cleanupPrompts(t *testing.T, client *contextforge.Client, promptIDs []string) {
 	t.Helper()
 
 	for _, promptID := range promptIDs {

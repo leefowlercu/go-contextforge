@@ -44,8 +44,8 @@ export BASIC_AUTH_PASSWORD=testpassword123
 export JWT_SECRET_KEY="test-secret-key-for-integration-testing"
 export SECURE_COOKIES=false
 
-# Start gateway in background
-uvx --from mcp-contextforge-gateway mcpgateway --host 0.0.0.0 --port 8000 > "$PROJECT_ROOT/tmp/contextforge-test.log" 2>&1 &
+# Start gateway in background (v1.0.0-BETA-1)
+uvx --from 'mcp-contextforge-gateway==1.0.0b1' mcpgateway --host 0.0.0.0 --port 8000 > "$PROJECT_ROOT/tmp/contextforge-test.log" 2>&1 &
 GATEWAY_PID=$!
 echo $GATEWAY_PID > "$PROJECT_ROOT/tmp/contextforge-test.pid"
 
@@ -75,7 +75,7 @@ echo "🔑 Generating JWT token for integration tests..."
 
 # Step 1: Generate bootstrap token with basic admin claims
 echo "  Creating bootstrap token..."
-uvx --from mcp-contextforge-gateway python3 -m mcpgateway.utils.create_jwt_token \
+uvx --from 'mcp-contextforge-gateway==1.0.0b1' python3 -m mcpgateway.utils.create_jwt_token \
   --exp 10080 \
   --secret test-secret-key-for-integration-testing \
   --data '{"username": "admin@test.local", "team_ids": [], "is_admin": true}' > "$PROJECT_ROOT/tmp/bootstrap-token.txt" 2>&1

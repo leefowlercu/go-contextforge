@@ -317,7 +317,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 
 	mockPrompts := []*contextforge.Prompt{
 		{
-			ID:          1,
+			ID:          "1",
 			Name:        "analyze-file",
 			Description: contextforge.String("Analyze the contents of a file"),
 			Template:    "Analyze the following file: {{file}}",
@@ -325,7 +325,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 			IsActive:    true,
 		},
 		{
-			ID:          2,
+			ID:          "2",
 			Name:        "summarize-directory",
 			Description: contextforge.String("Summarize contents of a directory"),
 			Template:    "Summarize files in: {{directory}}",
@@ -356,7 +356,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 				Name:        req.Server.Name,
 				Description: req.Server.Description,
 				Icon:        req.Server.Icon,
-				Tags:        req.Server.Tags,
+				Tags:        contextforge.NewTags(req.Server.Tags),
 				IsActive:    true,
 				CreatedAt:   &contextforge.Timestamp{Time: now},
 				UpdatedAt:   &contextforge.Timestamp{Time: now},
@@ -528,7 +528,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 				server.Icon = req.Icon
 			}
 			if req.Tags != nil {
-				server.Tags = req.Tags
+				server.Tags = contextforge.NewTags(req.Tags)
 			}
 			server.UpdatedAt = &contextforge.Timestamp{Time: time.Now()}
 

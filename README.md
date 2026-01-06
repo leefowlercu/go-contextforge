@@ -12,7 +12,7 @@ A Go SDK for the [IBM ContextForge MCP Gateway](https://github.com/IBM/mcp-conte
 - [Quick Start](#quick-start)
 - [Usage Guide](#usage-guide)
   - [Client Configuration](#client-configuration)
-  - [Pointer Helpers](#pointer-helpers)
+  - [Pointer Helpers and Tags](#pointer-helpers-and-tags)
   - [Managing Tools](#managing-tools)
   - [Managing Resources](#managing-resources)
   - [Managing Gateways](#managing-gateways)
@@ -111,7 +111,8 @@ func main() {
 
     fmt.Printf("Found %d tools:\n", len(tools))
     for _, tool := range tools {
-        fmt.Printf("- %s: %s\n", tool.Name, *tool.Description)
+        desc := contextforge.StringValue(tool.Description) // Safe nil handling
+        fmt.Printf("- %s: %s\n", tool.Name, desc)
     }
 
     // Get a specific tool
@@ -158,7 +159,7 @@ if err != nil {
 // Note: NewClient automatically adds trailing slash if missing
 ```
 
-### Pointer Helpers
+### Pointer Helpers and Tags
 
 The SDK uses pointers and slices to distinguish between three states for optional fields:
 
@@ -209,6 +210,23 @@ update2 := &contextforge.ResourceUpdate{
 update3 := &contextforge.ResourceUpdate{
     Tags: []string{"new-tag"}, // Sets new tags
 }
+```
+
+**Tag type handling:**
+
+Tags have different types for input vs output due to API response format changes in v1.0.0:
+
+- **Create/Update types** use `[]string` for input (e.g., `ResourceCreate.Tags`, `PromptCreate.Tags`)
+- **Read types** return `[]Tag` structs with `ID` and `Label` fields (e.g., `Tool.Tags`, `Prompt.Tags`)
+
+Helper functions for conversion:
+
+```go
+// Convert strings to Tag structs (for update operations on read types)
+tags := contextforge.NewTags([]string{"tag1", "tag2"})
+
+// Extract tag names from Tag structs
+names := contextforge.TagNames(tool.Tags) // Returns []string{"tag1", "tag2"}
 ```
 
 ### Managing Tools
@@ -492,19 +510,19 @@ if err == nil {
 // Get prompt without arguments
 result, _, err = client.Prompts.GetNoArgs(ctx, "simple-prompt")
 
-// Update prompt
+// Update prompt (promptID is a string)
 update := &contextforge.PromptUpdate{
     Description: contextforge.String("Updated description"),
     Template:    contextforge.String("Updated template: {{new_arg}}"),
 }
-updated, _, err := client.Prompts.Update(ctx, 123, update)
+updated, _, err := client.Prompts.Update(ctx, "prompt-id", update)
 
 // Toggle prompt status
-toggled, _, err := client.Prompts.Toggle(ctx, 123, true) // activate
-toggled, _, err = client.Prompts.Toggle(ctx, 123, false) // deactivate
+toggled, _, err := client.Prompts.Toggle(ctx, "prompt-id", true) // activate
+toggled, _, err = client.Prompts.Toggle(ctx, "prompt-id", false) // deactivate
 
 // Delete prompt
-_, err = client.Prompts.Delete(ctx, 123)
+_, err = client.Prompts.Delete(ctx, "prompt-id")
 ```
 
 ### Managing Agents
@@ -1149,7 +1167,9 @@ This SDK follows the service-oriented architecture pattern established by [googl
 
 - **FlexibleID** - Handles API inconsistencies where IDs may be returned as integers or strings
 - **Timestamp** - Custom timestamp parsing for API responses without timezone information
+- **Tag** - Handles tag objects with `ID` and `Label` fields; custom JSON marshal/unmarshal for API compatibility
 - **Pointer helpers** - `String()`, `Int()`, `Bool()`, `Time()` for working with optional fields
+- **Tag helpers** - `NewTags()`, `NewTag()`, `TagNames()` for converting between `[]string` and `[]Tag`
 
 ## Links
 
@@ -1162,7 +1182,7 @@ This SDK follows the service-oriented architecture pattern established by [googl
 
 ### Upstream ContextForge API Bugs
 
-The SDK integration tests have identified six bugs in ContextForge v0.8.0. These bugs are in the upstream API, not the SDK implementation. Affected tests are skipped and will be re-enabled once upstream bugs are fixed.
+The SDK integration tests have identified six bugs in ContextForge (confirmed in both v0.8.0 and v1.0.0-BETA-1). These bugs are in the upstream API, not the SDK implementation. Affected tests are skipped and will be re-enabled once upstream bugs are fixed.
 
 **CONTEXTFORGE-001: Toggle Endpoints Return Stale State**
 The `POST /prompts/{id}/toggle` and `POST /resources/{id}/toggle` endpoints return stale `isActive` state despite correctly updating the database. See [`docs/upstream-bugs/prompt-toggle.md`](docs/upstream-bugs/prompt-toggle.md).

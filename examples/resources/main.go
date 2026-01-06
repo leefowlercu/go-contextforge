@@ -280,7 +280,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 				Name:        req.Resource.Name,
 				Description: req.Resource.Description,
 				MimeType:    req.Resource.MimeType,
-				Tags:        req.Resource.Tags,
+				Tags:        contextforge.NewTags(req.Resource.Tags),
 				IsActive:    true,
 				CreatedAt:   &contextforge.Timestamp{Time: now},
 				UpdatedAt:   &contextforge.Timestamp{Time: now},
@@ -421,7 +421,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 				resource.Description = req.Description
 			}
 			if req.Tags != nil {
-				resource.Tags = req.Tags
+				resource.Tags = contextforge.NewTags(req.Tags)
 			}
 			if req.MimeType != nil {
 				resource.MimeType = req.MimeType

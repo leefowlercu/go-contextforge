@@ -360,7 +360,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 				// Don't return AuthValue (it's encrypted by API)
 				Enabled:    true,
 				Reachable:  true, // Simulated connectivity status
-				Tags:       req.Agent.Tags,
+				Tags:       contextforge.NewTags(req.Agent.Tags),
 				TeamID:     req.Agent.TeamID,
 				Visibility: req.Agent.Visibility,
 				CreatedAt:  &contextforge.Timestamp{Time: now},
@@ -559,7 +559,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 				agent.Config = req.Config
 			}
 			if req.Tags != nil {
-				agent.Tags = req.Tags
+				agent.Tags = contextforge.NewTags(req.Tags)
 			}
 			agent.UpdatedAt = &contextforge.Timestamp{Time: time.Now()}
 

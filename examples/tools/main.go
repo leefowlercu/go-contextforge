@@ -60,7 +60,7 @@ func main() {
 			},
 			"required": []string{"operation", "a", "b"},
 		},
-		Tags:       []string{"math", "calculator", "example"},
+		Tags:       contextforge.NewTags([]string{"math", "calculator", "example"}),
 		Visibility: "public",
 	}
 
@@ -148,7 +148,7 @@ func main() {
 	fmt.Println("6. Updating tool...")
 	updateTool := &contextforge.Tool{
 		Description: contextforge.String("An advanced calculator with additional features"),
-		Tags:        []string{"math", "calculator", "example", "advanced"},
+		Tags:        contextforge.NewTags([]string{"math", "calculator", "example", "advanced"}),
 	}
 
 	updatedTool, _, err := client.Tools.Update(ctx, createdTool.ID, updateTool)

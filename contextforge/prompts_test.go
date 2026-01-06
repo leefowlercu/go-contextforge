@@ -16,7 +16,7 @@ func TestPromptsService_List(t *testing.T) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Next-Cursor", "next123")
-		fmt.Fprint(w, `[{"id":1,"name":"test-prompt","description":"A test","template":"Hello {{name}}","arguments":[],"isActive":true,"tags":[],"metrics":{"totalExecutions":10,"successfulExecutions":9,"failedExecutions":1,"failureRate":0.1}}]`)
+		fmt.Fprint(w, `[{"id":"1","name":"test-prompt","description":"A test","template":"Hello {{name}}","arguments":[],"isActive":true,"tags":[],"metrics":{"totalExecutions":10,"successfulExecutions":9,"failedExecutions":1,"failureRate":0.1}}]`)
 	})
 
 	ctx := context.Background()
@@ -268,7 +268,7 @@ func TestPromptsService_Create(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"id":456,"name":"new-prompt","description":"A new prompt","template":"Hello {{name}}","arguments":[{"name":"name","required":true}],"isActive":true,"tags":["test"],"metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}`)
+		fmt.Fprint(w, `{"id":"456","name":"new-prompt","description":"A new prompt","template":"Hello {{name}}","arguments":[{"name":"name","required":true}],"isActive":true,"tags":[{"id":"test","label":"test"}],"metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}`)
 	})
 
 	ctx := context.Background()
@@ -278,8 +278,8 @@ func TestPromptsService_Create(t *testing.T) {
 		t.Errorf("Prompts.Create returned error: %v", err)
 	}
 
-	if prompt.ID != 456 {
-		t.Errorf("Prompts.Create returned prompt ID %d, want %d", prompt.ID, 456)
+	if prompt.ID != "456" {
+		t.Errorf("Prompts.Create returned prompt ID %q, want %q", prompt.ID, "456")
 	}
 
 	if prompt.Name != "new-prompt" {
@@ -315,7 +315,7 @@ func TestPromptsService_Create_WithOptions(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"id":456,"name":"new-prompt","template":"Hello {{name}}","arguments":[],"isActive":true,"teamId":"team-123","visibility":"private","metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}`)
+		fmt.Fprint(w, `{"id":"456","name":"new-prompt","template":"Hello {{name}}","arguments":[],"isActive":true,"teamId":"team-123","visibility":"private","metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}`)
 	})
 
 	ctx := context.Background()
@@ -352,11 +352,11 @@ func TestPromptsService_Update(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"id":123,"name":"updated-prompt","description":"An updated prompt","template":"Hello {{name}}","arguments":[],"isActive":true,"metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}`)
+		fmt.Fprint(w, `{"id":"123","name":"updated-prompt","description":"An updated prompt","template":"Hello {{name}}","arguments":[],"isActive":true,"metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}`)
 	})
 
 	ctx := context.Background()
-	prompt, _, err := client.Prompts.Update(ctx, 123, input)
+	prompt, _, err := client.Prompts.Update(ctx, "123", input)
 
 	if err != nil {
 		t.Errorf("Prompts.Update returned error: %v", err)
@@ -377,7 +377,7 @@ func TestPromptsService_Delete(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	_, err := client.Prompts.Delete(ctx, 123)
+	_, err := client.Prompts.Delete(ctx, "123")
 
 	if err != nil {
 		t.Errorf("Prompts.Delete returned error: %v", err)
@@ -398,11 +398,11 @@ func TestPromptsService_Toggle(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"status":"success","message":"Prompt activated","prompt":{"id":123,"name":"test-prompt","template":"Hello {{name}}","arguments":[],"isActive":true,"metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}}`)
+		fmt.Fprint(w, `{"status":"success","message":"Prompt activated","prompt":{"id":"123","name":"test-prompt","template":"Hello {{name}}","arguments":[],"isActive":true,"metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}}`)
 	})
 
 	ctx := context.Background()
-	prompt, _, err := client.Prompts.Toggle(ctx, 123, true)
+	prompt, _, err := client.Prompts.Toggle(ctx, "123", true)
 
 	if err != nil {
 		t.Errorf("Prompts.Toggle returned error: %v", err)
@@ -431,11 +431,11 @@ func TestPromptsService_Toggle_Deactivate(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"status":"success","message":"Prompt deactivated","prompt":{"id":123,"name":"test-prompt","template":"Hello {{name}}","arguments":[],"isActive":false,"metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}}`)
+		fmt.Fprint(w, `{"status":"success","message":"Prompt deactivated","prompt":{"id":"123","name":"test-prompt","template":"Hello {{name}}","arguments":[],"isActive":false,"metrics":{"totalExecutions":0,"successfulExecutions":0,"failedExecutions":0,"failureRate":0}}}`)
 	})
 
 	ctx := context.Background()
-	prompt, _, err := client.Prompts.Toggle(ctx, 123, false)
+	prompt, _, err := client.Prompts.Toggle(ctx, "123", false)
 
 	if err != nil {
 		t.Errorf("Prompts.Toggle returned error: %v", err)

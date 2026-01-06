@@ -218,7 +218,7 @@ func main() {
 	// Step 10: Demonstrate upstream bug - toggle non-existent returns 400
 	fmt.Println("10. Demonstrating CONTEXTFORGE-003 (toggle returns 400 vs 404)...")
 	fmt.Println("   NOTE: Toggle non-existent prompt returns 400, should return 404")
-	_, _, err = client.Prompts.Toggle(ctx, 99999, false)
+	_, _, err = client.Prompts.Toggle(ctx, "99999", false)
 	if err != nil {
 		if apiErr, ok := err.(*contextforge.ErrorResponse); ok {
 			fmt.Printf("   ✓ Got error: HTTP %d\n", apiErr.Response.StatusCode)
@@ -232,18 +232,18 @@ func main() {
 
 	// Step 11: Delete prompts
 	fmt.Println("11. Deleting prompts...")
-	for _, id := range []int{createdPrompt.ID, createdPrompt2.ID} {
+	for _, id := range []string{createdPrompt.ID, createdPrompt2.ID} {
 		_, err = client.Prompts.Delete(ctx, id)
 		if err != nil {
-			log.Fatalf("Failed to delete prompt %d: %v", id, err)
+			log.Fatalf("Failed to delete prompt %s: %v", id, err)
 		}
-		fmt.Printf("   ✓ Deleted prompt: %d\n", id)
+		fmt.Printf("   ✓ Deleted prompt: %s\n", id)
 	}
 	fmt.Println()
 
 	fmt.Println("=== Example completed successfully! ===")
 	fmt.Println("\nKey Features Demonstrated:")
-	fmt.Println("• Prompts use integer IDs (not strings like other services)")
+	fmt.Println("• Prompts use string IDs (like other services)")
 	fmt.Println("• No Get method - use List to retrieve prompts")
 	fmt.Println("• Template with argument placeholders ({{language}}, {{code}})")
 	fmt.Println("• Required and optional arguments")
@@ -288,7 +288,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 	})
 
 	// Mock prompt storage (in-memory)
-	prompts := make(map[int]*contextforge.Prompt)
+	prompts := make(map[string]*contextforge.Prompt)
 	var promptCounter int
 
 	// POST /prompts - Create prompt
@@ -307,7 +307,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 			// CONTEXTFORGE-002: API should validate template is present, but doesn't
 			// For this mock, we'll accept it to demonstrate the bug
 			promptCounter++
-			id := promptCounter
+			id := strconv.Itoa(promptCounter)
 			now := time.Now()
 
 			prompt := &contextforge.Prompt{
@@ -316,7 +316,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 				Description: req.Prompt.Description,
 				Template:    req.Prompt.Template,
 				Arguments:   req.Prompt.Arguments,
-				Tags:        req.Prompt.Tags,
+				Tags:        contextforge.NewTags(req.Prompt.Tags),
 				TeamID:      req.Prompt.TeamID,
 				Visibility:  req.Prompt.Visibility,
 				IsActive:    true,
@@ -378,11 +378,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 			return
 		}
 
-		promptID, err := strconv.Atoi(parts[2])
-		if err != nil {
-			http.Error(w, "Invalid prompt ID", http.StatusBadRequest)
-			return
-		}
+		promptID := parts[2]
 
 		// Handle toggle endpoint
 		if len(parts) == 4 && parts[3] == "toggle" {
@@ -453,7 +449,7 @@ func setupMockEndpoints(mux *http.ServeMux) {
 				prompt.Description = req.Description
 			}
 			if req.Tags != nil {
-				prompt.Tags = req.Tags
+				prompt.Tags = contextforge.NewTags(req.Tags)
 			}
 			prompt.UpdatedAt = &contextforge.Timestamp{Time: time.Now()}
 

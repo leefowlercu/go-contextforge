@@ -121,9 +121,9 @@ func TestToolsService_BasicCRUD(t *testing.T) {
 
 		// Update the tool
 		expectedDescription := "Updated description for integration test"
-		expectedTags := []string{"updated", "integration-test"}
+		expectedTagNames := []string{"updated", "integration-test"}
 		created.Description = contextforge.String(expectedDescription)
-		created.Tags = expectedTags
+		created.Tags = contextforge.NewTags(expectedTagNames)
 
 		updated, _, err := client.Tools.Update(ctx, created.ID, created)
 		if err != nil {
@@ -134,8 +134,8 @@ func TestToolsService_BasicCRUD(t *testing.T) {
 		if updated.Description == nil || *updated.Description != expectedDescription {
 			t.Errorf("Expected description %q, got %v", expectedDescription, updated.Description)
 		}
-		if !reflect.DeepEqual(updated.Tags, expectedTags) {
-			t.Errorf("Expected tags %v, got %v", expectedTags, updated.Tags)
+		if !reflect.DeepEqual(contextforge.TagNames(updated.Tags), expectedTagNames) {
+			t.Errorf("Expected tags %v, got %v", expectedTagNames, contextforge.TagNames(updated.Tags))
 		}
 
 		t.Logf("Successfully updated tool: %s (ID: %s)", updated.Name, updated.ID)
@@ -309,7 +309,7 @@ func TestToolsService_Filtering(t *testing.T) {
 	t.Run("filter by tags", func(t *testing.T) {
 		// Create tool with specific tags
 		tool := minimalToolInput()
-		tool.Tags = []string{"filter-test", "integration"}
+		tool.Tags = contextforge.NewTags([]string{"filter-test", "integration"})
 
 		created, _, err := client.Tools.Create(ctx, tool, nil)
 		if err != nil {
@@ -466,7 +466,7 @@ func TestToolsService_Filtering(t *testing.T) {
 	t.Run("combined filters", func(t *testing.T) {
 		// Create tool with multiple filterable properties
 		tool := minimalToolInput()
-		tool.Tags = []string{"combined-filter-test"}
+		tool.Tags = contextforge.NewTags([]string{"combined-filter-test"})
 		tool.Visibility = "public"
 
 		created, _, err := client.Tools.Create(ctx, tool, nil)

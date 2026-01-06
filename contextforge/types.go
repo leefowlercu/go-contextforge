@@ -189,6 +189,78 @@ type ListOptions struct {
 	Cursor string `url:"cursor,omitempty"`
 }
 
+// Tag represents a tag that can be unmarshaled from either a string or an object.
+// In v1.0.0+, the API returns tags as objects with id and label fields,
+// but accepts simple strings as input. This type handles both formats.
+//
+// Example input (create/update): ["tag1", "tag2"]
+// Example output (read): [{"id":"tag1","label":"tag1"}, {"id":"tag2","label":"tag2"}]
+type Tag struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+}
+
+// String returns the tag name (ID).
+func (t Tag) String() string {
+	return t.ID
+}
+
+// UnmarshalJSON handles both string and object formats for tags.
+// This allows seamless parsing of both old string format and new object format.
+func (t *Tag) UnmarshalJSON(data []byte) error {
+	// Try to unmarshal as string first
+	var s string
+	if err := json.Unmarshal(data, &s); err == nil {
+		t.ID = s
+		t.Label = s
+		return nil
+	}
+
+	// Fall back to object format
+	type tagAlias Tag // prevent recursion
+	var obj tagAlias
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return err
+	}
+	*t = Tag(obj)
+	return nil
+}
+
+// MarshalJSON outputs tags as strings for API input compatibility.
+func (t Tag) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.ID)
+}
+
+// NewTag creates a new Tag from a string.
+func NewTag(name string) Tag {
+	return Tag{ID: name, Label: name}
+}
+
+// NewTags creates a slice of Tags from a slice of strings.
+func NewTags(names []string) []Tag {
+	if names == nil {
+		return nil
+	}
+	tags := make([]Tag, len(names))
+	for i, name := range names {
+		tags[i] = NewTag(name)
+	}
+	return tags
+}
+
+// TagNames returns the tag names (IDs) from a slice of Tag objects.
+// This is a convenience method for getting just the tag names.
+func TagNames(tags []Tag) []string {
+	if tags == nil {
+		return nil
+	}
+	names := make([]string, len(tags))
+	for i, t := range tags {
+		names[i] = t.ID
+	}
+	return names
+}
+
 // Tool represents a ContextForge tool.
 type Tool struct {
 	ID          string         `json:"id,omitempty"`
@@ -198,9 +270,26 @@ type Tool struct {
 	Enabled     bool           `json:"enabled,omitempty"`
 	TeamID      *string        `json:"teamId,omitempty"`
 	Visibility  string         `json:"visibility,omitempty"`
-	Tags        []string       `json:"tags,omitempty"`
+	Tags        []Tag          `json:"tags,omitempty"`
 	CreatedAt   *Timestamp     `json:"createdAt,omitempty"`
 	UpdatedAt   *Timestamp     `json:"updatedAt,omitempty"`
+
+	// Additional fields added in v1.0.0
+	Team       *string `json:"team,omitempty"`
+	OwnerEmail *string `json:"ownerEmail,omitempty"`
+
+	// Metadata fields (read-only)
+	CreatedBy         *string `json:"createdBy,omitempty"`
+	CreatedFromIP     *string `json:"createdFromIp,omitempty"`
+	CreatedVia        *string `json:"createdVia,omitempty"`
+	CreatedUserAgent  *string `json:"createdUserAgent,omitempty"`
+	ModifiedBy        *string `json:"modifiedBy,omitempty"`
+	ModifiedFromIP    *string `json:"modifiedFromIp,omitempty"`
+	ModifiedVia       *string `json:"modifiedVia,omitempty"`
+	ModifiedUserAgent *string `json:"modifiedUserAgent,omitempty"`
+	ImportBatchID     *string `json:"importBatchId,omitempty"`
+	FederationSource  *string `json:"federationSource,omitempty"`
+	Version           *int    `json:"version,omitempty"`
 }
 
 // ToolListOptions specifies the optional parameters to the
@@ -241,11 +330,11 @@ type Resource struct {
 	Metrics     *ResourceMetrics `json:"metrics,omitempty"`
 
 	// Organizational fields
-	Tags       []string `json:"tags,omitempty"`
-	TeamID     *string  `json:"teamId,omitempty"`
-	Team       *string  `json:"team,omitempty"`
-	OwnerEmail *string  `json:"ownerEmail,omitempty"`
-	Visibility *string  `json:"visibility,omitempty"`
+	Tags       []Tag   `json:"tags,omitempty"`
+	TeamID     *string `json:"teamId,omitempty"`
+	Team       *string `json:"team,omitempty"`
+	OwnerEmail *string `json:"ownerEmail,omitempty"`
+	Visibility *string `json:"visibility,omitempty"`
 
 	// Timestamps
 	CreatedAt *Timestamp `json:"createdAt,omitempty"`
@@ -379,11 +468,11 @@ type Gateway struct {
 	OAuthConfig        map[string]any      `json:"oauthConfig,omitempty"`
 
 	// Organizational fields
-	Tags       []string `json:"tags,omitempty"`
-	TeamID     *string  `json:"teamId,omitempty"`
-	Team       *string  `json:"team,omitempty"`
-	OwnerEmail *string  `json:"ownerEmail,omitempty"`
-	Visibility *string  `json:"visibility,omitempty"`
+	Tags       []Tag   `json:"tags,omitempty"`
+	TeamID     *string `json:"teamId,omitempty"`
+	Team       *string `json:"team,omitempty"`
+	OwnerEmail *string `json:"ownerEmail,omitempty"`
+	Visibility *string `json:"visibility,omitempty"`
 
 	// Timestamps
 	CreatedAt *Timestamp `json:"createdAt,omitempty"`
@@ -438,11 +527,11 @@ type Server struct {
 	AssociatedA2aAgents []string `json:"associatedA2aAgents,omitempty"`
 
 	// Organizational fields
-	Tags       []string `json:"tags,omitempty"`
-	TeamID     *string  `json:"teamId,omitempty"`
-	Team       *string  `json:"team,omitempty"`
-	OwnerEmail *string  `json:"ownerEmail,omitempty"`
-	Visibility *string  `json:"visibility,omitempty"`
+	Tags       []Tag   `json:"tags,omitempty"`
+	TeamID     *string `json:"teamId,omitempty"`
+	Team       *string `json:"team,omitempty"`
+	OwnerEmail *string `json:"ownerEmail,omitempty"`
+	Visibility *string `json:"visibility,omitempty"`
 
 	// Timestamps
 	CreatedAt *Timestamp `json:"createdAt,omitempty"`
@@ -556,7 +645,8 @@ type ServerAssociationOptions struct {
 // Note: These types are shared between ServersService and the future PromptsService.
 type Prompt struct {
 	// Core fields
-	ID          int              `json:"id"`
+	// Note: ID changed from int to string in v1.0.0
+	ID          string           `json:"id"`
 	Name        string           `json:"name"`
 	Description *string          `json:"description,omitempty"`
 	Template    string           `json:"template"`
@@ -564,7 +654,8 @@ type Prompt struct {
 	CreatedAt   *Timestamp       `json:"createdAt,omitempty"`
 	UpdatedAt   *Timestamp       `json:"updatedAt,omitempty"`
 	IsActive    bool             `json:"isActive"`
-	Tags        []string         `json:"tags,omitempty"`
+	Enabled     bool             `json:"enabled,omitempty"` // v1.0.0 uses 'enabled' in addition to 'isActive'
+	Tags        []Tag            `json:"tags,omitempty"`
 	Metrics     *PromptMetrics   `json:"metrics,omitempty"`
 
 	// Organizational fields
@@ -690,7 +781,7 @@ type Agent struct {
 	LastInteraction *Timestamp `json:"lastInteraction,omitempty"`
 
 	// Organizational fields
-	Tags       []string      `json:"tags,omitempty"`
+	Tags       []Tag         `json:"tags,omitempty"`
 	Metrics    *AgentMetrics `json:"metrics,omitempty"`
 	TeamID     *string       `json:"teamId,omitempty"`
 	OwnerEmail *string       `json:"ownerEmail,omitempty"`

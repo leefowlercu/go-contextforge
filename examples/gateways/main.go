@@ -50,7 +50,7 @@ func main() {
 		URL:         "https://api.example.com",
 		Description: contextforge.String("A public gateway with no authentication"),
 		AuthType:    contextforge.String("none"),
-		Tags:        []string{"public", "example"},
+		Tags:        contextforge.NewTags([]string{"public", "example"}),
 	}
 
 	// TeamID and Visibility can be passed via options
@@ -77,7 +77,7 @@ func main() {
 		AuthType:     contextforge.String("basic"),
 		AuthUsername: contextforge.String("admin"),
 		AuthPassword: contextforge.String("secret123"),
-		Tags:         []string{"basic-auth", "private"},
+		Tags:         contextforge.NewTags([]string{"basic-auth", "private"}),
 	}
 
 	createdGateway2, _, err := client.Gateways.Create(ctx, basicAuthGateway, nil)
@@ -98,7 +98,7 @@ func main() {
 		Description: contextforge.String("A gateway using Bearer token authentication"),
 		AuthType:    contextforge.String("bearer"),
 		AuthToken:   contextforge.String("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."),
-		Tags:        []string{"bearer-auth", "jwt"},
+		Tags:        contextforge.NewTags([]string{"bearer-auth", "jwt"}),
 	}
 
 	createdGateway3, _, err := client.Gateways.Create(ctx, bearerAuthGateway, nil)
@@ -122,7 +122,7 @@ func main() {
 			{"X-API-Key": "abc123def456"},
 			{"X-Client-ID": "client-12345"},
 		},
-		Tags: []string{"api-key", "partner"},
+		Tags: contextforge.NewTags([]string{"api-key", "partner"}),
 	}
 
 	createdGateway4, _, err := client.Gateways.Create(ctx, apiKeyGateway, nil)
@@ -146,7 +146,7 @@ func main() {
 			"token_url":     "https://auth.example.com/oauth/token",
 			"scope":         "read write",
 		},
-		Tags: []string{"oauth", "oauth2"},
+		Tags: contextforge.NewTags([]string{"oauth", "oauth2"}),
 	}
 
 	createdGateway5, _, err := client.Gateways.Create(ctx, oauthGateway, nil)
@@ -202,7 +202,7 @@ func main() {
 	fmt.Println("9. Updating gateway...")
 	updateGateway := &contextforge.Gateway{
 		Description: contextforge.String("An updated public gateway with enhanced features"),
-		Tags:        []string{"public", "example", "updated"},
+		Tags:        contextforge.NewTags([]string{"public", "example", "updated"}),
 	}
 
 	updatedGateway, _, err := client.Gateways.Update(ctx, *createdGateway1.ID, updateGateway)

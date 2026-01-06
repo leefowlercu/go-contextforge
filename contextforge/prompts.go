@@ -115,8 +115,9 @@ func (s *PromptsService) Create(ctx context.Context, prompt *PromptCreate, opts 
 
 // Update updates an existing prompt.
 // Note: The API does not wrap the request body for prompt updates.
-func (s *PromptsService) Update(ctx context.Context, promptID int, prompt *PromptUpdate) (*Prompt, *Response, error) {
-	u := fmt.Sprintf("prompts/%d", promptID)
+// Note: promptID changed from int to string in v1.0.0.
+func (s *PromptsService) Update(ctx context.Context, promptID string, prompt *PromptUpdate) (*Prompt, *Response, error) {
+	u := fmt.Sprintf("prompts/%s", promptID)
 
 	req, err := s.client.NewRequest(http.MethodPut, u, prompt)
 	if err != nil {
@@ -133,8 +134,9 @@ func (s *PromptsService) Update(ctx context.Context, promptID int, prompt *Promp
 }
 
 // Delete deletes a prompt by its ID.
-func (s *PromptsService) Delete(ctx context.Context, promptID int) (*Response, error) {
-	u := fmt.Sprintf("prompts/%d", promptID)
+// Note: promptID changed from int to string in v1.0.0.
+func (s *PromptsService) Delete(ctx context.Context, promptID string) (*Response, error) {
+	u := fmt.Sprintf("prompts/%s", promptID)
 
 	req, err := s.client.NewRequest(http.MethodDelete, u, nil)
 	if err != nil {
@@ -150,8 +152,9 @@ func (s *PromptsService) Delete(ctx context.Context, promptID int) (*Response, e
 }
 
 // Toggle toggles a prompt's active status.
-func (s *PromptsService) Toggle(ctx context.Context, promptID int, activate bool) (*Prompt, *Response, error) {
-	u := fmt.Sprintf("prompts/%d/toggle?activate=%t", promptID, activate)
+// Note: promptID changed from int to string in v1.0.0.
+func (s *PromptsService) Toggle(ctx context.Context, promptID string, activate bool) (*Prompt, *Response, error) {
+	u := fmt.Sprintf("prompts/%s/toggle?activate=%t", promptID, activate)
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil)
 	if err != nil {
