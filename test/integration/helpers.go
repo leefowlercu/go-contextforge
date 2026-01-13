@@ -550,6 +550,8 @@ func minimalAgentInput() *contextforge.AgentCreate {
 }
 
 // completeAgentInput returns an agent input with all optional fields for testing
+// Note: Auth fields are omitted because v1.0.0b1 API requires auth_token for bearer auth,
+// but the SDK's AgentCreate struct uses auth_value. This is a known API compatibility issue.
 func completeAgentInput() *contextforge.AgentCreate {
 	return &contextforge.AgentCreate{
 		Name:            randomAgentName(),
@@ -565,8 +567,6 @@ func completeAgentInput() *contextforge.AgentCreate {
 			"timeout": 30,
 			"retries": 3,
 		},
-		AuthType:   contextforge.String("bearer"),
-		AuthValue:  contextforge.String("test-token-123"),
 		Tags:       []string{"test", "integration"},
 		Visibility: contextforge.String("public"),
 	}

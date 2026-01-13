@@ -312,7 +312,7 @@ func TestResourcesService_Delete(t *testing.T) {
 }
 
 func TestResourcesService_Toggle(t *testing.T) {
-	t.Skip("Skipping due to upstream ContextForge API bug - toggle returns stale isActive state. See docs/upstream-bugs/prompt-toggle.md")
+	t.Skip("Skipping due to upstream ContextForge API bug - toggle returns stale isActive state. See docs/upstream-bugs/contextforge-001-prompt-toggle.md")
 	client, mux, _, teardown := setup()
 	defer teardown()
 

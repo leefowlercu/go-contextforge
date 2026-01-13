@@ -2,10 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-001
 **Component:** ContextForge MCP Gateway
-**Affected Version:** v0.8.0
+**Affected Version:** v0.8.0, v1.0.0-BETA-1
 **Severity:** Medium
-**Status:** Confirmed
+**Status:** Confirmed (likely still present in v1.0.0-BETA-1)
 **Reported:** 2025-11-09
+**Last Validated:** 2026-01-13
 
 ## Summary
 
@@ -248,6 +249,42 @@ The SDK integration test failure is expected given the ContextForge bug. All SDK
 
 ---
 
+## v1.0.0-BETA-1 Validation Notes
+
+**Validated:** 2026-01-13
+
+The code structure remains similar in v1.0.0-BETA-1, though with some changes:
+
+### Code Location Changes
+
+- **New location:** `mcpgateway/services/prompt_service.py:1226-1314` (was 847-899)
+- **Field renamed:** `is_active` → `enabled`
+
+### Pattern Analysis
+
+The same pattern exists in v1.0.0-BETA-1:
+
+```python
+# Line 1278-1279
+db.commit()
+db.refresh(prompt)
+
+# Line 1313 - team lookup after refresh
+prompt.team = self._get_team_name(db, prompt.team_id)
+
+# Line 1314 - conversion that reads enabled field
+return PromptRead.model_validate(self._convert_db_prompt(prompt))
+```
+
+The `_convert_db_prompt()` method reads `db_prompt.enabled` at line 253.
+
+### Status
+
+**Likely still present** - The same SQLAlchemy session state pattern exists. Runtime verification needed to confirm, but the code structure suggests the bug persists.
+
+---
+
 **Report Generated:** 2025-11-09
 **Tested Against:** ContextForge v0.8.0
+**Validated Against:** ContextForge v1.0.0-BETA-1
 **Reporter:** go-contextforge SDK Team

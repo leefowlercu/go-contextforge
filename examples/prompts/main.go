@@ -1,7 +1,6 @@
 // Package main demonstrates comprehensive usage of the PromptsService
-// from the go-contextforge SDK. This example highlights prompts using integer IDs
-// (unlike other services) and documents known upstream API bugs. Uses a mock HTTP
-// server for self-contained demonstration.
+// from the go-contextforge SDK. This example documents known upstream API bugs
+// and uses a mock HTTP server for self-contained demonstration.
 //
 // Known Upstream Bugs (ContextForge v0.8.0):
 // - CONTEXTFORGE-001: Toggle returns stale isActive state
@@ -77,7 +76,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create prompt: %v", err)
 	}
-	fmt.Printf("   ✓ Created prompt: %s (ID: %d)\n", createdPrompt.Name, createdPrompt.ID)
+	fmt.Printf("   ✓ Created prompt: %s (ID: %s)\n", createdPrompt.Name, createdPrompt.ID)
 	fmt.Printf("   ✓ Template: %s\n", createdPrompt.Template[:50]+"...")
 	fmt.Printf("   ✓ Arguments: %d\n", len(createdPrompt.Arguments))
 	for i, arg := range createdPrompt.Arguments {
@@ -100,7 +99,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create prompt: %v", err)
 	}
-	fmt.Printf("   ✓ Created prompt: %s (ID: %d)\n\n", createdPrompt2.Name, createdPrompt2.ID)
+	fmt.Printf("   ✓ Created prompt: %s (ID: %s)\n\n", createdPrompt2.Name, createdPrompt2.ID)
 
 	// Step 4: List prompts with filtering
 	// Note: PromptsService does not have a Get method (only List, Create, Update, Delete, Toggle)
@@ -121,7 +120,7 @@ func main() {
 	}
 	fmt.Printf("   ✓ Found %d prompt(s)\n", len(prompts))
 	for i, prompt := range prompts {
-		fmt.Printf("   %d. %s (ID: %d, Active: %v)\n", i+1, prompt.Name, prompt.ID, prompt.IsActive)
+		fmt.Printf("   %d. %s (ID: %s, Active: %v)\n", i+1, prompt.Name, prompt.ID, prompt.IsActive)
 	}
 	fmt.Println()
 
@@ -208,7 +207,7 @@ func main() {
 	if err != nil {
 		fmt.Printf("   ✓ API correctly rejected empty template: %v\n", err)
 	} else {
-		fmt.Printf("   ⚠ WARNING: API accepted prompt without template (ID: %d)\n", invalidPrompt.ID)
+		fmt.Printf("   ⚠ WARNING: API accepted prompt without template (ID: %s)\n", invalidPrompt.ID)
 		fmt.Println("   ⚠ This is CONTEXTFORGE-002 bug - prompts should require template")
 		// Clean up invalid prompt
 		client.Prompts.Delete(ctx, invalidPrompt.ID)
@@ -243,7 +242,7 @@ func main() {
 
 	fmt.Println("=== Example completed successfully! ===")
 	fmt.Println("\nKey Features Demonstrated:")
-	fmt.Println("• Prompts use string IDs (like other services)")
+	fmt.Println("• Prompts use string IDs")
 	fmt.Println("• No Get method - use List to retrieve prompts")
 	fmt.Println("• Template with argument placeholders ({{language}}, {{code}})")
 	fmt.Println("• Required and optional arguments")

@@ -2,10 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-002
 **Component:** ContextForge MCP Gateway - Prompts API
-**Affected Version:** v0.8.0
+**Affected Version:** v0.8.0, v1.0.0-BETA-1 (partial)
 **Severity:** Low
-**Status:** Confirmed
+**Status:** PARTIALLY FIXED (empty string still accepted)
 **Reported:** 2025-11-09
+**Validated:** 2026-01-13
 
 ## Summary
 
@@ -248,6 +249,53 @@ SDK users should:
 
 ---
 
+## Fix Validation (v1.0.0-BETA-1)
+
+**Validated:** 2026-01-13
+
+The bug is **PARTIALLY FIXED** in ContextForge v1.0.0-BETA-1.
+
+**File:** `mcpgateway/schemas.py:2046`
+
+```python
+template: str = Field(..., description="Prompt template text")
+```
+
+The `...` in Pydantic `Field()` means the field is **required**. However:
+
+### Partial Fix Details
+
+| Request | Status Code | Result |
+|---------|-------------|--------|
+| Missing `template` field | 422 | **FIXED** - Rejected |
+| Empty `template: ""` | 200 | **NOT FIXED** - Accepted |
+
+### Evidence
+
+```bash
+# Missing template - correctly rejected with 422
+curl -X POST /prompts -d '{"prompt": {"name": "test"}}'
+# Returns 422: "Field required"
+
+# Empty template - incorrectly accepted!
+curl -X POST /prompts -d '{"prompt": {"name": "test", "template": ""}}'
+# Returns 200: Prompt created with empty template
+```
+
+### SDK Impact
+
+The Go SDK's `PromptCreate` struct has `Template string` without `omitempty`, which means it always sends `"template": ""` when Template is the zero value. This causes the API to accept the request.
+
+### SDK Test Status
+
+Integration tests remain **skipped** because:
+1. The SDK cannot omit the template field (would require `*string` type)
+2. The API accepts empty template strings
+3. The underlying issue (prompts with empty templates are semantically invalid) persists
+
+---
+
 **Report Generated:** 2025-11-09
 **Tested Against:** ContextForge v0.8.0
+**Fix Validated Against:** ContextForge v1.0.0-BETA-1
 **Reporter:** go-contextforge SDK Team

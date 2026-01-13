@@ -136,6 +136,9 @@ func TestGatewaysService_BasicCRUD(t *testing.T) {
 	})
 
 	t.Run("create gateway with all optional fields", func(t *testing.T) {
+		// CONTEXTFORGE-007: Gateway tags not persisted - see docs/upstream-bugs/contextforge-007-gateway-tags-not-persisted.md
+		t.Skip("CONTEXTFORGE-007: Gateway tags not persisted on create")
+
 		gateway := gatewayCompleteInput(t)
 
 		created, _, err := client.Gateways.Create(ctx, gateway, nil)
@@ -202,6 +205,9 @@ func TestGatewaysService_BasicCRUD(t *testing.T) {
 	})
 
 	t.Run("update gateway", func(t *testing.T) {
+		// CONTEXTFORGE-007: Gateway tags not persisted - see docs/upstream-bugs/contextforge-007-gateway-tags-not-persisted.md
+		t.Skip("CONTEXTFORGE-007: Gateway tags not persisted on update")
+
 		created := gatewayCreate(t, client, randomGatewayName())
 
 		// Update the gateway

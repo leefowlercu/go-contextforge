@@ -249,12 +249,20 @@ Some integration tests are skipped due to confirmed bugs in the upstream Context
 
 | Bug ID | Summary | Skipped Tests |
 |--------|---------|---------------|
-| CONTEXTFORGE-001 | Toggle endpoints return stale state | 1 test |
-| CONTEXTFORGE-002 | API accepts empty template field | 1 test |
+| CONTEXTFORGE-001 | Toggle endpoints return stale state | 4 tests |
+| CONTEXTFORGE-002 | API accepts empty template string | 1 test |
 | CONTEXTFORGE-003 | Toggle returns 400 instead of 404 | 1 test |
 | CONTEXTFORGE-004 | Teams endpoints reject valid auth | 12 tests |
 | CONTEXTFORGE-005 | Teams slug field ignored | 2 tests |
-| CONTEXTFORGE-006 | Teams returns 422 vs 400 | 1 test |
+| CONTEXTFORGE-007 | Gateway tags not persisted | 2 tests |
+| CONTEXTFORGE-008 | Agent bearer auth requires auth_token | 1 test |
+| CONTEXTFORGE-009 | Tag filtering returns empty results | 5 tests |
+| CONTEXTFORGE-010 | Team ID filter returns 403 | 1 test |
+
+**Resolved Issues (tests re-enabled):**
+| Bug ID | Summary | Resolution |
+|--------|---------|------------|
+| CONTEXTFORGE-006 | 422 for validation errors | By design (FastAPI standard)
 
 To re-enable a skipped test once the upstream bug is fixed:
 1. Verify the bug is fixed in the ContextForge version you're testing against

@@ -2,10 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-003
 **Component:** ContextForge MCP Gateway - Prompts API
-**Affected Version:** v0.8.0
+**Affected Version:** v0.8.0, v1.0.0-BETA-1
 **Severity:** Low
 **Status:** Confirmed
 **Reported:** 2025-11-09
+**Last Validated:** 2026-01-13
 
 ## Summary
 
@@ -305,6 +306,38 @@ if err != nil && strings.Contains(err.Error(), "not found") {
 
 ---
 
+## v1.0.0-BETA-1 Validation Notes
+
+**Validated:** 2026-01-13
+
+The bug is **confirmed still present** in v1.0.0-BETA-1.
+
+### Source Code Evidence
+
+**File:** `mcpgateway/main.py:3270-3271`
+
+```python
+except Exception as e:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+```
+
+This catch-all exception handler returns 400 for ALL exceptions, including `PromptNotFoundError` which should return 404.
+
+### Documentation Confirms Behavior
+
+The docstring at line 3257 even documents this as intended behavior:
+
+```
+"emitted with *400 Bad Request* status"
+```
+
+### Code Location
+
+The toggle endpoint is now at `main.py:3236-3271` (was ~2690-2723).
+
+---
+
 **Report Generated:** 2025-11-09
 **Tested Against:** ContextForge v0.8.0
+**Validated Against:** ContextForge v1.0.0-BETA-1
 **Reporter:** go-contextforge SDK Team

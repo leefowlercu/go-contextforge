@@ -128,8 +128,9 @@ func TestServersService_BasicCRUD(t *testing.T) {
 		if updated.Description == nil || *updated.Description != expectedDescription {
 			t.Errorf("Expected description %q, got %v", expectedDescription, updated.Description)
 		}
-		if !reflect.DeepEqual(updated.Tags, expectedTags) {
-			t.Errorf("Expected tags %v, got %v", expectedTags, updated.Tags)
+		actualTagNames := contextforge.TagNames(updated.Tags)
+		if !reflect.DeepEqual(actualTagNames, expectedTags) {
+			t.Errorf("Expected tags %v, got %v", expectedTags, actualTagNames)
 		}
 
 		t.Logf("Successfully updated server: %s (ID: %s)", updated.Name, updated.ID)
@@ -209,6 +210,9 @@ func TestServersService_Toggle(t *testing.T) {
 	})
 
 	t.Run("toggle inactive to active", func(t *testing.T) {
+		// CONTEXTFORGE-001: Toggle returns stale state - see docs/upstream-bugs/contextforge-001-prompt-toggle.md
+		t.Skip("CONTEXTFORGE-001: Toggle returns stale isActive state")
+
 		server := minimalServerInput()
 		created, _, err := client.Servers.Create(ctx, server, nil)
 		if err != nil {
@@ -355,6 +359,9 @@ func TestServersService_Filtering(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("filter by tags", func(t *testing.T) {
+		// CONTEXTFORGE-009: Tag filtering returns empty results - see docs/upstream-bugs/contextforge-009-tag-filtering-empty-results.md
+		t.Skip("CONTEXTFORGE-009: Tag filtering returns empty results")
+
 		// Create server with specific tags
 		server := &contextforge.ServerCreate{
 			Name:        randomServerName(),
@@ -467,6 +474,9 @@ func TestServersService_Filtering(t *testing.T) {
 	})
 
 	t.Run("combined filters", func(t *testing.T) {
+		// CONTEXTFORGE-009: Tag filtering returns empty results - see docs/upstream-bugs/contextforge-009-tag-filtering-empty-results.md
+		t.Skip("CONTEXTFORGE-009: Combined filtering with tags returns empty results")
+
 		// Create server with specific tags and visibility
 		server := &contextforge.ServerCreate{
 			Name:        randomServerName(),

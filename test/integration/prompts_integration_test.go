@@ -113,8 +113,9 @@ func TestPromptsService_BasicCRUD(t *testing.T) {
 		if updated.Description == nil || *updated.Description != expectedDescription {
 			t.Errorf("Expected description %q, got %v", expectedDescription, updated.Description)
 		}
-		if !reflect.DeepEqual(updated.Tags, expectedTags) {
-			t.Errorf("Expected tags %v, got %v", expectedTags, updated.Tags)
+		actualTagNames := contextforge.TagNames(updated.Tags)
+		if !reflect.DeepEqual(actualTagNames, expectedTags) {
+			t.Errorf("Expected tags %v, got %v", expectedTags, actualTagNames)
 		}
 
 		t.Logf("Successfully updated prompt: %s (ID: %s)", updated.Name, updated.ID)
@@ -197,7 +198,7 @@ func TestPromptsService_Toggle(t *testing.T) {
 	})
 
 	t.Run("toggle inactive to active", func(t *testing.T) {
-		t.Skip("Skipping due to upstream ContextForge bug - see docs/upstream-bugs/prompt-toggle.md")
+		t.Skip("Skipping due to upstream ContextForge bug - see docs/upstream-bugs/contextforge-001-prompt-toggle.md")
 
 		prompt := minimalPromptInput()
 
@@ -284,6 +285,9 @@ func TestPromptsService_Filtering(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("filter by tags", func(t *testing.T) {
+		// CONTEXTFORGE-009: Tag filtering returns empty results - see docs/upstream-bugs/contextforge-009-tag-filtering-empty-results.md
+		t.Skip("CONTEXTFORGE-009: Tag filtering returns empty results")
+
 		// Create prompt with specific tag
 		prompt := minimalPromptInput()
 		prompt.Tags = []string{"test-filter-tag"}
@@ -495,7 +499,9 @@ func TestPromptsService_InputValidation(t *testing.T) {
 	})
 
 	t.Run("create prompt without required template", func(t *testing.T) {
-		t.Skip("Skipping due to upstream ContextForge bug - see docs/upstream-bugs/prompt-validation-missing-template.md")
+		// CONTEXTFORGE-002: Partially fixed in v1.0.0-BETA-1 - missing template is rejected (422)
+		// but empty template "" is still accepted. SDK sends "" since Template is not *string.
+		t.Skip("CONTEXTFORGE-002: API accepts empty template string - see docs/upstream-bugs/contextforge-002-prompt-validation-missing-template.md")
 
 		prompt := &contextforge.PromptCreate{
 			Name: randomPromptName(),
@@ -554,7 +560,7 @@ func TestPromptsService_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("toggle non-existent prompt returns 404", func(t *testing.T) {
-		t.Skip("Skipping due to upstream ContextForge bug - see docs/upstream-bugs/prompt-toggle-error-code.md")
+		t.Skip("Skipping due to upstream ContextForge bug - see docs/upstream-bugs/contextforge-003-prompt-toggle-error-code.md")
 
 		_, _, err := client.Prompts.Toggle(ctx, "99999999", true)
 		if err == nil {
@@ -691,7 +697,7 @@ func TestPromptsService_GetRenderedPrompt(t *testing.T) {
 			"topic": "Go programming",
 		}
 
-		result, _, err := client.Prompts.Get(ctx, created.Name, args)
+		result, _, err := client.Prompts.Get(ctx, created.ID, args)
 		if err != nil {
 			t.Fatalf("Failed to get rendered prompt: %v", err)
 		}
@@ -736,7 +742,7 @@ func TestPromptsService_GetRenderedPrompt(t *testing.T) {
 		})
 
 		// Get the rendered prompt with empty arguments
-		result, _, err := client.Prompts.Get(ctx, created.Name, nil)
+		result, _, err := client.Prompts.Get(ctx, created.ID, nil)
 		if err != nil {
 			t.Fatalf("Failed to get rendered prompt: %v", err)
 		}
@@ -768,7 +774,7 @@ func TestPromptsService_GetRenderedPrompt(t *testing.T) {
 		})
 
 		// Use GetNoArgs method
-		result, _, err := client.Prompts.GetNoArgs(ctx, created.Name)
+		result, _, err := client.Prompts.GetNoArgs(ctx, created.ID)
 		if err != nil {
 			t.Fatalf("Failed to get prompt with GetNoArgs: %v", err)
 		}

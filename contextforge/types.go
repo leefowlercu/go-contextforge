@@ -522,8 +522,8 @@ type Server struct {
 
 	// Association fields
 	AssociatedTools     []string `json:"associatedTools,omitempty"`
-	AssociatedResources []int    `json:"associatedResources,omitempty"`
-	AssociatedPrompts   []int    `json:"associatedPrompts,omitempty"`
+	AssociatedResources []string `json:"associatedResources,omitempty"`
+	AssociatedPrompts   []string `json:"associatedPrompts,omitempty"`
 	AssociatedA2aAgents []string `json:"associatedA2aAgents,omitempty"`
 
 	// Organizational fields

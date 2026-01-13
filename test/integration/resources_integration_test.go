@@ -143,6 +143,9 @@ func TestResourcesService_Toggle(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("toggle active to inactive", func(t *testing.T) {
+		// CONTEXTFORGE-001: Toggle returns stale state - see docs/upstream-bugs/contextforge-001-prompt-toggle.md
+		t.Skip("CONTEXTFORGE-001: Toggle returns stale isActive state")
+
 		// Create an active resource
 		resource := minimalResourceInput()
 		created, _, err := client.Resources.Create(ctx, resource, nil)
@@ -174,6 +177,9 @@ func TestResourcesService_Toggle(t *testing.T) {
 	})
 
 	t.Run("toggle inactive to active", func(t *testing.T) {
+		// CONTEXTFORGE-001: Toggle returns stale state - see docs/upstream-bugs/contextforge-001-prompt-toggle.md
+		t.Skip("CONTEXTFORGE-001: Toggle returns stale isActive state")
+
 		// Create resource and toggle to inactive
 		resource := minimalResourceInput()
 		created, _, err := client.Resources.Create(ctx, resource, nil)

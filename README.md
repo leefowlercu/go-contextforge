@@ -8,6 +8,7 @@ A Go SDK for the [IBM ContextForge MCP Gateway](https://github.com/IBM/mcp-conte
 ## Table of Contents
 
 - [Overview](#overview)
+  - [Compatibility](#compatibility)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Usage Guide](#usage-guide)
@@ -71,6 +72,10 @@ Through ContextForge, agents advertise their capabilities using Agent Cards (JSO
 The SDK provides full management of A2A agents including creation, configuration, endpoint registration, invocation, and performance metrics tracking. This enables building multi-agent systems where specialized agents can collaborate through a standardized protocol.
 
 For more information about the A2A protocol, see the [official specification](https://a2a-protocol.org/latest/specification/) and [project website](https://a2aprotocol.ai/).
+
+### Compatibility
+
+This SDK is tested against **ContextForge v1.0.0-BETA-1** (PyPI: `mcpgateway==1.0.0b1`).
 
 ## Installation
 
@@ -1185,22 +1190,22 @@ This SDK follows the service-oriented architecture pattern established by [googl
 The SDK integration tests have identified six bugs in ContextForge (confirmed in both v0.8.0 and v1.0.0-BETA-1). These bugs are in the upstream API, not the SDK implementation. Affected tests are skipped and will be re-enabled once upstream bugs are fixed.
 
 **CONTEXTFORGE-001: Toggle Endpoints Return Stale State**
-The `POST /prompts/{id}/toggle` and `POST /resources/{id}/toggle` endpoints return stale `isActive` state despite correctly updating the database. See [`docs/upstream-bugs/prompt-toggle.md`](docs/upstream-bugs/prompt-toggle.md).
+The `POST /prompts/{id}/toggle` and `POST /resources/{id}/toggle` endpoints return stale `isActive` state despite correctly updating the database. See [`docs/upstream-bugs/contextforge-001-prompt-toggle.md`](docs/upstream-bugs/contextforge-001-prompt-toggle.md).
 
 **CONTEXTFORGE-002: Prompts API Accepts Empty Template Field**
-The `POST /prompts` endpoint accepts prompt creation without the `template` field, allowing semantically invalid prompts. See [`docs/upstream-bugs/prompt-validation-missing-template.md`](docs/upstream-bugs/prompt-validation-missing-template.md).
+The `POST /prompts` endpoint accepts prompt creation without the `template` field, allowing semantically invalid prompts. See [`docs/upstream-bugs/contextforge-002-prompt-validation-missing-template.md`](docs/upstream-bugs/contextforge-002-prompt-validation-missing-template.md).
 
 **CONTEXTFORGE-003: Prompts Toggle Returns 400 Instead of 404**
-The `POST /prompts/{id}/toggle` endpoint returns HTTP 400 for non-existent prompts instead of 404. See [`docs/upstream-bugs/prompt-toggle-error-code.md`](docs/upstream-bugs/prompt-toggle-error-code.md).
+The `POST /prompts/{id}/toggle` endpoint returns HTTP 400 for non-existent prompts instead of 404. See [`docs/upstream-bugs/contextforge-003-prompt-toggle-error-code.md`](docs/upstream-bugs/contextforge-003-prompt-toggle-error-code.md).
 
 **CONTEXTFORGE-004: Teams Individual Resource Endpoints Reject Valid Authentication**
-Individual team endpoints (`GET/PUT/DELETE /teams/{id}/*`) reject valid JWT tokens with 401 Unauthorized, despite list/create working correctly. See [`docs/upstream-bugs/teams-auth-individual-endpoints.md`](docs/upstream-bugs/teams-auth-individual-endpoints.md).
+Individual team endpoints (`GET/PUT/DELETE /teams/{id}/*`) reject valid JWT tokens with 401 Unauthorized, despite list/create working correctly. See [`docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md`](docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md).
 
 **CONTEXTFORGE-005: Teams API Ignores User-Provided Slug Field**
-The `POST /teams` endpoint ignores the `slug` field and always auto-generates from team name. See [`docs/upstream-bugs/teams-slug-ignored.md`](docs/upstream-bugs/teams-slug-ignored.md).
+The `POST /teams` endpoint ignores the `slug` field and always auto-generates from team name. See [`docs/upstream-bugs/contextforge-005-teams-slug-ignored.md`](docs/upstream-bugs/contextforge-005-teams-slug-ignored.md).
 
 **CONTEXTFORGE-006: Teams API Returns 422 Instead of 400 for Validation Errors**
-The `POST /teams` endpoint returns HTTP 422 (Unprocessable Entity) for validation errors instead of 400 (Bad Request). See [`docs/upstream-bugs/teams-validation-error-code.md`](docs/upstream-bugs/teams-validation-error-code.md).
+The `POST /teams` endpoint returns HTTP 422 (Unprocessable Entity) for validation errors instead of 400 (Bad Request). See [`docs/upstream-bugs/contextforge-006-teams-validation-error-code.md`](docs/upstream-bugs/contextforge-006-teams-validation-error-code.md).
 
 All bug reports include root cause analysis, proposed solutions, and workarounds.
 

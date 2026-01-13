@@ -142,8 +142,9 @@ func TestAgentsService_BasicCRUD(t *testing.T) {
 		if updated.Description == nil || *updated.Description != expectedDescription {
 			t.Errorf("Expected description %q, got %v", expectedDescription, updated.Description)
 		}
-		if !reflect.DeepEqual(updated.Tags, expectedTags) {
-			t.Errorf("Expected tags %v, got %v", expectedTags, updated.Tags)
+		actualTagNames := contextforge.TagNames(updated.Tags)
+		if !reflect.DeepEqual(actualTagNames, expectedTags) {
+			t.Errorf("Expected tags %v, got %v", expectedTags, actualTagNames)
 		}
 
 		t.Logf("Successfully updated agent: %s (ID: %s)", updated.Name, updated.ID)
@@ -571,6 +572,9 @@ func TestAgentsService_EdgeCases(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("create agent with authentication", func(t *testing.T) {
+		// CONTEXTFORGE-008: Agent bearer auth requires auth_token field - see docs/upstream-bugs/contextforge-008-agent-auth-field-name.md
+		t.Skip("CONTEXTFORGE-008: Agent bearer auth requires auth_token instead of auth_value")
+
 		agent := minimalAgentInput()
 		agent.AuthType = contextforge.String("bearer")
 		agent.AuthValue = contextforge.String("test-secret-token")

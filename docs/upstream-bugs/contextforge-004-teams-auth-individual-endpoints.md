@@ -2,10 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-004
 **Component:** ContextForge MCP Gateway
-**Affected Version:** v0.8.0
+**Affected Version:** v0.8.0, v1.0.0-BETA-1
 **Severity:** High
-**Status:** Confirmed
+**Status:** Confirmed (root cause identified)
 **Reported:** 2025-11-09
+**Last Validated:** 2026-01-13
 
 ## Summary
 
@@ -365,6 +366,80 @@ The SDK integration test failures are expected given the ContextForge bug. All S
 
 ---
 
+## v1.0.0-BETA-1 Validation Notes
+
+**Validated:** 2026-01-13
+
+Source code analysis reveals the **actual root cause** is a dependency injection inconsistency, not token validation.
+
+### Root Cause: Different Authentication Dependencies
+
+**File:** `mcpgateway/routers/teams.py`
+
+**Working endpoints** (list, create) use `get_current_user_with_permissions`:
+```python
+# Line 65-67: create_team
+@teams_router.post("/", response_model=TeamResponse, status_code=status.HTTP_201_CREATED)
+@require_permission("teams.create")
+async def create_team(request: TeamCreateRequest, current_user_ctx: dict = Depends(get_current_user_with_permissions)):
+    db = current_user_ctx["db"]  # DB is provided in context
+    ...
+
+# Line 112-117: list_teams
+@teams_router.get("/", response_model=TeamListResponse)
+@require_permission("teams.read")
+async def list_teams(..., current_user_ctx: dict = Depends(get_current_user_with_permissions)):
+    db = current_user_ctx["db"]  # DB is provided in context
+    ...
+```
+
+**Broken endpoints** (get, update, delete) use SEPARATE dependencies:
+```python
+# Line 176-178: get_team
+@teams_router.get("/{team_id}", response_model=TeamResponse)
+@require_permission("teams.read")
+async def get_team(team_id: str, current_user: EmailUserResponse = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Uses get_current_user instead of get_current_user_with_permissions
+    # May have different session/validation behavior
+    ...
+
+# Line 226-228: update_team
+@teams_router.put("/{team_id}", response_model=TeamResponse)
+@require_permission("teams.update")
+async def update_team(team_id: str, request: TeamUpdateRequest, current_user: EmailUserResponse = Depends(get_current_user), db: Session = Depends(get_db)):
+    ...
+```
+
+### Key Difference
+
+| Endpoint Type | Dependency | DB Session Source |
+|---------------|------------|-------------------|
+| Working (list, create) | `get_current_user_with_permissions` | `current_user_ctx["db"]` |
+| Broken (get, update, delete) | `get_current_user` + `get_db` | Separate `Depends(get_db)` |
+
+### Hypothesis Update
+
+The bug is NOT about invalid tokens. The issue is:
+1. `get_current_user` and `get_current_user_with_permissions` may have different authentication flows
+2. The separate `get_db` dependency may not properly integrate with the auth flow
+3. The different context structure may cause permission checks to fail
+
+### Recommendation
+
+Fix the broken endpoints to use the same pattern as working endpoints:
+```python
+# Instead of:
+async def get_team(team_id: str, current_user: EmailUserResponse = Depends(get_current_user), db: Session = Depends(get_db)):
+
+# Use:
+async def get_team(team_id: str, current_user_ctx: dict = Depends(get_current_user_with_permissions)):
+    db = current_user_ctx["db"]
+    current_user = current_user_ctx  # or extract email from context
+```
+
+---
+
 **Report Generated:** 2025-11-09
 **Tested Against:** ContextForge v0.8.0
+**Validated Against:** ContextForge v1.0.0-BETA-1
 **Reporter:** go-contextforge SDK Team

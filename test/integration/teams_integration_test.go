@@ -50,7 +50,7 @@ func TestTeamsService_BasicCRUD(t *testing.T) {
 	})
 
 	t.Run("create team with all optional fields", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-005: Teams API ignores user-provided slug field - see docs/upstream-bugs/teams-slug-ignored.md")
+		t.Skip("CONTEXTFORGE-005: Teams API ignores user-provided slug field - see docs/upstream-bugs/contextforge-005-teams-slug-ignored.md")
 		team := completeTeamInput()
 
 		created, _, err := client.Teams.Create(ctx, team)
@@ -85,7 +85,7 @@ func TestTeamsService_BasicCRUD(t *testing.T) {
 	})
 
 	t.Run("get team by ID", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/teams-auth-individual-endpoints.md")
+		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md")
 		created := createTestTeam(t, client, randomTeamName())
 
 		retrieved, _, err := client.Teams.Get(ctx, created.ID)
@@ -107,7 +107,7 @@ func TestTeamsService_BasicCRUD(t *testing.T) {
 	})
 
 	t.Run("update team", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/teams-auth-individual-endpoints.md")
+		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md")
 		created := createTestTeam(t, client, randomTeamName())
 
 		update := &contextforge.TeamUpdate{
@@ -135,7 +135,7 @@ func TestTeamsService_BasicCRUD(t *testing.T) {
 	})
 
 	t.Run("delete team", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/teams-auth-individual-endpoints.md")
+		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md")
 		created := createTestTeam(t, client, randomTeamName())
 
 		// Delete manually (not via cleanup)
@@ -223,7 +223,7 @@ func TestTeamsService_Members(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("list team members", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/teams-auth-individual-endpoints.md")
+		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md")
 		created := createTestTeam(t, client, randomTeamName())
 
 		members, resp, err := client.Teams.ListMembers(ctx, created.ID)
@@ -267,7 +267,7 @@ func TestTeamsService_Invitations(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("create invitation", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/teams-auth-individual-endpoints.md")
+		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md")
 		created := createTestTeam(t, client, randomTeamName())
 
 		invite := &contextforge.TeamInvite{
@@ -305,7 +305,7 @@ func TestTeamsService_Invitations(t *testing.T) {
 	})
 
 	t.Run("list team invitations", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/teams-auth-individual-endpoints.md")
+		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md")
 		created := createTestTeam(t, client, randomTeamName())
 
 		// Create an invitation first
@@ -353,7 +353,7 @@ func TestTeamsService_Invitations(t *testing.T) {
 	})
 
 	t.Run("cancel invitation", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/teams-auth-individual-endpoints.md")
+		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md")
 		created := createTestTeam(t, client, randomTeamName())
 
 		invite := &contextforge.TeamInvite{
@@ -387,7 +387,7 @@ func TestTeamsService_Discovery(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("discover public teams", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-004: Team discovery endpoint rejects valid authentication - see docs/upstream-bugs/teams-auth-individual-endpoints.md")
+		t.Skip("CONTEXTFORGE-004: Team discovery endpoint rejects valid authentication - see docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md")
 		// Create a public team for discovery
 		team := &contextforge.TeamCreate{
 			Name:       randomTeamName(),
@@ -421,7 +421,7 @@ func TestTeamsService_Discovery(t *testing.T) {
 	})
 
 	t.Run("discover teams with pagination", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-004: Team discovery endpoint rejects valid authentication - see docs/upstream-bugs/teams-auth-individual-endpoints.md")
+		t.Skip("CONTEXTFORGE-004: Team discovery endpoint rejects valid authentication - see docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md")
 		opts := &contextforge.TeamDiscoverOptions{
 			Skip:  0,
 			Limit: 5,
@@ -452,7 +452,7 @@ func TestTeamsService_ErrorHandling(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("get non-existent team returns 404", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/teams-auth-individual-endpoints.md")
+		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md")
 		_, resp, err := client.Teams.Get(ctx, "non-existent-id")
 		if err == nil {
 			t.Error("Expected error when getting non-existent team")
@@ -466,7 +466,7 @@ func TestTeamsService_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("update non-existent team returns 404", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/teams-auth-individual-endpoints.md")
+		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md")
 		update := &contextforge.TeamUpdate{
 			Name: contextforge.String("updated-name"),
 		}
@@ -484,7 +484,7 @@ func TestTeamsService_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("delete non-existent team returns 404", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/teams-auth-individual-endpoints.md")
+		t.Skip("CONTEXTFORGE-004: Individual team endpoints reject valid authentication - see docs/upstream-bugs/contextforge-004-teams-auth-individual-endpoints.md")
 		resp, err := client.Teams.Delete(ctx, "non-existent-id")
 		if err == nil {
 			t.Error("Expected error when deleting non-existent team")
@@ -497,8 +497,8 @@ func TestTeamsService_ErrorHandling(t *testing.T) {
 		t.Logf("Correctly returned 404 for non-existent team deletion")
 	})
 
-	t.Run("create team without required name returns 400", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-006: Teams API returns 422 instead of 400 for validation errors - see docs/upstream-bugs/teams-validation-error-code.md")
+	t.Run("create team without required name returns 422", func(t *testing.T) {
+		// CONTEXTFORGE-006: 422 is standard FastAPI/Pydantic behavior for validation errors (by design)
 		team := &contextforge.TeamCreate{
 			// Missing required Name field
 			Description: contextforge.String("A team without a name"),
@@ -509,11 +509,11 @@ func TestTeamsService_ErrorHandling(t *testing.T) {
 			t.Error("Expected error when creating team without name")
 		}
 
-		if resp == nil || resp.StatusCode != http.StatusBadRequest {
-			t.Errorf("Expected status 400, got %v", resp)
+		if resp == nil || resp.StatusCode != http.StatusUnprocessableEntity {
+			t.Errorf("Expected status 422, got %v", resp)
 		}
 
-		t.Logf("Correctly returned 400 for team creation without name")
+		t.Logf("Correctly returned 422 for team creation without name")
 	})
 }
 
@@ -525,7 +525,7 @@ func TestTeamsService_Validation(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("create team with valid slug pattern", func(t *testing.T) {
-		t.Skip("CONTEXTFORGE-005: Teams API ignores user-provided slug field - see docs/upstream-bugs/teams-slug-ignored.md")
+		t.Skip("CONTEXTFORGE-005: Teams API ignores user-provided slug field - see docs/upstream-bugs/contextforge-005-teams-slug-ignored.md")
 		team := &contextforge.TeamCreate{
 			Name: randomTeamName(),
 			Slug: contextforge.String("valid-slug-123"),

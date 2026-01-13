@@ -307,6 +307,9 @@ func TestToolsService_Filtering(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("filter by tags", func(t *testing.T) {
+		// CONTEXTFORGE-009: Tag filtering returns empty results - see docs/upstream-bugs/contextforge-009-tag-filtering-empty-results.md
+		t.Skip("CONTEXTFORGE-009: Tag filtering returns empty results")
+
 		// Create tool with specific tags
 		tool := minimalToolInput()
 		tool.Tags = contextforge.NewTags([]string{"filter-test", "integration"})
@@ -385,6 +388,9 @@ func TestToolsService_Filtering(t *testing.T) {
 	})
 
 	t.Run("filter by team_id", func(t *testing.T) {
+		// CONTEXTFORGE-010: Team ID filter returns permission error - see docs/upstream-bugs/contextforge-010-team-id-filter-permission-error.md
+		t.Skip("CONTEXTFORGE-010: Team ID filter returns 403 permission error")
+
 		// Create tool with team ID
 		tool := minimalToolInput()
 		tool.TeamID = contextforge.String("test-team-integration")

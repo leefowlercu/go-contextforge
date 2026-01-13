@@ -1,11 +1,12 @@
-# ContextForge Bug: Teams API Returns 422 Instead of 400 for Validation Errors
+# ContextForge Note: Teams API Returns 422 Instead of 400 for Validation Errors
 
 **Bug ID:** CONTEXTFORGE-006
 **Component:** ContextForge MCP Gateway
-**Affected Version:** v0.8.0
-**Severity:** Low
-**Status:** Confirmed
+**Affected Version:** v0.8.0, v1.0.0-BETA-1
+**Severity:** Informational (not a bug)
+**Status:** BY DESIGN (FastAPI standard behavior)
 **Reported:** 2025-11-09
+**Last Validated:** 2026-01-13
 
 ## Summary
 
@@ -287,6 +288,48 @@ The SDK correctly returns errors for validation failures, but the Response objec
 
 ---
 
+## v1.0.0-BETA-1 Validation Notes
+
+**Validated:** 2026-01-13
+
+This behavior is **BY DESIGN** - FastAPI/Pydantic's standard behavior for validation errors.
+
+### Analysis
+
+ContextForge uses FastAPI with Pydantic for request validation. FastAPI's default behavior is to return HTTP 422 for Pydantic validation errors. This is:
+
+1. **Standard FastAPI behavior** - Not a bug or oversight
+2. **Documented behavior** - FastAPI documentation clearly states this
+3. **Consistent across the API** - All endpoints using Pydantic validation return 422
+
+### Recommendation
+
+**Update SDK test expectations to accept 422** for validation errors rather than treating this as a bug. This is the correct approach because:
+
+1. 422 is a valid HTTP status code for "semantically invalid" requests
+2. FastAPI uses this consistently
+3. Changing the API to return 400 would break other clients expecting 422
+4. The error details are provided correctly in the response body
+
+### SDK Action Required
+
+Update integration tests to expect 422 instead of 400 for Pydantic validation errors:
+
+```go
+// Change from:
+if apiErr.Response.StatusCode != http.StatusBadRequest {  // 400
+    t.Errorf("Expected 400, got %d", apiErr.Response.StatusCode)
+}
+
+// To:
+if apiErr.Response.StatusCode != http.StatusUnprocessableEntity {  // 422
+    t.Errorf("Expected 422, got %d", apiErr.Response.StatusCode)
+}
+```
+
+---
+
 **Report Generated:** 2025-11-09
 **Tested Against:** ContextForge v0.8.0
+**Validated Against:** ContextForge v1.0.0-BETA-1
 **Reporter:** go-contextforge SDK Team

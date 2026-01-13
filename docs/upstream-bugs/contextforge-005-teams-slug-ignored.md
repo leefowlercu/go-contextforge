@@ -2,10 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-005
 **Component:** ContextForge MCP Gateway
-**Affected Version:** v0.8.0
+**Affected Version:** v0.8.0, v1.0.0-BETA-1
 **Severity:** Low
-**Status:** Confirmed
+**Status:** Confirmed (root cause identified)
 **Reported:** 2025-11-09
+**Last Validated:** 2026-01-13
 
 ## Summary
 
@@ -294,6 +295,60 @@ The test failures correctly identify the API behavior mismatch.
 
 ---
 
+## v1.0.0-BETA-1 Validation Notes
+
+**Validated:** 2026-01-13
+
+Source code analysis **confirms the root cause** - the slug field is accepted by the schema but never passed to the service.
+
+### Evidence
+
+**File:** `mcpgateway/routers/teams.py:88`
+
+```python
+async def create_team(request: TeamCreateRequest, current_user_ctx: dict = Depends(get_current_user_with_permissions)) -> TeamResponse:
+    try:
+        db = current_user_ctx["db"]
+        service = TeamManagementService(db)
+        team = await service.create_team(
+            name=request.name,
+            description=request.description,
+            created_by=current_user_ctx["email"],
+            visibility=request.visibility,
+            max_members=request.max_members
+        )
+        # Note: request.slug is NOT passed to create_team()
+```
+
+**File:** `mcpgateway/services/team_management_service.py:100`
+
+The `create_team` method signature has NO slug parameter:
+
+```python
+async def create_team(self, name: str, description: str = None, created_by: str = None,
+                      visibility: str = "private", max_members: int = None):
+    # No slug parameter - slug is always auto-generated
+```
+
+### Schema vs Implementation Mismatch
+
+**Schema accepts slug** (`TeamCreateRequest`):
+```python
+slug: Optional[str] = Field(
+    None,
+    description="(optional, auto-generated if not provided)"  # Line 5121
+)
+```
+
+**But implementation ignores it** - the router doesn't pass `request.slug` to the service.
+
+### Confirmation
+
+This is definitively a bug, not intentional behavior. The schema documents slug as optional (implying it can be provided), but the implementation completely ignores any provided value.
+
+---
+
 **Report Generated:** 2025-11-09
 **Tested Against:** ContextForge v0.8.0
+**Validated Against:** ContextForge v1.0.0-BETA-1
 **Reporter:** go-contextforge SDK Team
