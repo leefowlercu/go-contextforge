@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-01-13
+
+### Documentation
+- Docs: validate bug reports against v1.0.0-beta-1 and reorganize
+
 ## [0.8.0] - 2026-01-06
 
 ### Added
@@ -137,6 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial commit, add contextforge api client sdk, add gateways, servers, prompts, resources, and tools services, add integration test suite, add unit tests
 
+[0.8.1]: https://github.com/leefowlercu/go-contextforge/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/leefowlercu/go-contextforge/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/leefowlercu/go-contextforge/compare/v0.6.3...v0.7.0
 [0.6.3]: https://github.com/leefowlercu/go-contextforge/compare/v0.6.2...v0.6.3
