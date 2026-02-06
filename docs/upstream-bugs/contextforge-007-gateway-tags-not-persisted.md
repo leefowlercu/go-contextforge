@@ -2,10 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-007
 **Component:** ContextForge MCP Gateway
-**Affected Version:** v1.0.0-BETA-1
+**Affected Version:** v1.0.0-BETA-1 (fixed in v1.0.0-BETA-2)
 **Severity:** Medium
-**Status:** Confirmed
+**Status:** FIXED in v1.0.0-BETA-2
 **Reported:** 2026-01-12
+**Last Validated:** 2026-02-06
 
 ## Summary
 
@@ -153,3 +154,17 @@ Either:
 1. Fix `validate_tags_field()` to return `List[str]` (just the tag IDs)
 2. Or update the database schema to expect `List[Dict]`
 3. Or update the gateway service to extract IDs before storage
+
+---
+
+## v1.0.0-BETA-2 Revalidation Notes
+
+**Validated:** 2026-02-06
+
+- **Still Valid?** No. Gateway tags now persist on create and update.
+- **Is it actually a bug?** Yes. Silent tag loss on write was a data integrity bug.
+
+### Evidence
+
+- Runtime create/update checks now return tags and persist them for subsequent reads.
+- Current code in `mcpgateway/db.py` and `mcpgateway/services/gateway_service.py` handles normalized tag storage.

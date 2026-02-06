@@ -16,8 +16,14 @@ import (
 
 // List retrieves a list of gateways from the ContextForge API.
 func (s *GatewaysService) List(ctx context.Context, opts *GatewayListOptions) ([]*Gateway, *Response, error) {
+	reqOpts := &GatewayListOptions{}
+	if opts != nil {
+		*reqOpts = *opts
+	}
+	reqOpts.IncludePagination = true
+
 	u := "gateways"
-	u, err := addOptions(u, opts)
+	u, err := addOptions(u, reqOpts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -27,10 +33,18 @@ func (s *GatewaysService) List(ctx context.Context, opts *GatewayListOptions) ([
 		return nil, nil, err
 	}
 
-	var gateways []*Gateway
-	resp, err := s.client.Do(ctx, req, &gateways)
+	var raw json.RawMessage
+	resp, err := s.client.Do(ctx, req, &raw)
 	if err != nil {
 		return nil, resp, err
+	}
+
+	gateways, nextCursor, err := decodeListResponse[Gateway](raw, "gateways")
+	if err != nil {
+		return nil, resp, err
+	}
+	if nextCursor != "" {
+		resp.NextCursor = nextCursor
 	}
 
 	return gateways, resp, nil
@@ -130,9 +144,18 @@ func (s *GatewaysService) Delete(ctx context.Context, gatewayID string) (*Respon
 	return resp, nil
 }
 
-// Toggle toggles a gateway's enabled status.
+// SetState sets a gateway's enabled status using the preferred /state endpoint.
+func (s *GatewaysService) SetState(ctx context.Context, gatewayID string, activate bool) (*Gateway, *Response, error) {
+	return s.setState(ctx, gatewayID, activate, "state")
+}
+
+// Toggle toggles a gateway's enabled status using the legacy /toggle endpoint.
 func (s *GatewaysService) Toggle(ctx context.Context, gatewayID string, activate bool) (*Gateway, *Response, error) {
-	u := fmt.Sprintf("gateways/%s/toggle?activate=%t", url.PathEscape(gatewayID), activate)
+	return s.setState(ctx, gatewayID, activate, "toggle")
+}
+
+func (s *GatewaysService) setState(ctx context.Context, gatewayID string, activate bool, endpoint string) (*Gateway, *Response, error) {
+	u := fmt.Sprintf("gateways/%s/%s?activate=%t", url.PathEscape(gatewayID), endpoint, activate)
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil)
 	if err != nil {
@@ -151,8 +174,30 @@ func (s *GatewaysService) Toggle(ctx context.Context, gatewayID string, activate
 	if gatewayData, ok := result["gateway"]; ok {
 		// Re-marshal and unmarshal to convert to Gateway struct
 		gatewayJSON, _ := json.Marshal(gatewayData)
-		json.Unmarshal(gatewayJSON, &gateway)
+		_ = json.Unmarshal(gatewayJSON, &gateway)
 	}
 
 	return gateway, resp, nil
+}
+
+// RefreshTools triggers a manual refresh of tools/resources/prompts for a gateway.
+func (s *GatewaysService) RefreshTools(ctx context.Context, gatewayID string, opts *GatewayRefreshOptions) (*GatewayRefreshResponse, *Response, error) {
+	u := fmt.Sprintf("gateways/%s/tools/refresh", url.PathEscape(gatewayID))
+	u, err := addOptions(u, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, err := s.client.NewRequest(http.MethodPost, u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var result *GatewayRefreshResponse
+	resp, err := s.client.Do(ctx, req, &result)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return result, resp, nil
 }

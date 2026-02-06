@@ -15,8 +15,14 @@ import (
 
 // List retrieves a paginated list of prompts from the ContextForge API.
 func (s *PromptsService) List(ctx context.Context, opts *PromptListOptions) ([]*Prompt, *Response, error) {
+	reqOpts := &PromptListOptions{}
+	if opts != nil {
+		*reqOpts = *opts
+	}
+	reqOpts.IncludePagination = true
+
 	u := "prompts"
-	u, err := addOptions(u, opts)
+	u, err := addOptions(u, reqOpts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -26,10 +32,18 @@ func (s *PromptsService) List(ctx context.Context, opts *PromptListOptions) ([]*
 		return nil, nil, err
 	}
 
-	var prompts []*Prompt
-	resp, err := s.client.Do(ctx, req, &prompts)
+	var raw json.RawMessage
+	resp, err := s.client.Do(ctx, req, &raw)
 	if err != nil {
 		return nil, resp, err
+	}
+
+	prompts, nextCursor, err := decodeListResponse[Prompt](raw, "prompts")
+	if err != nil {
+		return nil, resp, err
+	}
+	if nextCursor != "" {
+		resp.NextCursor = nextCursor
 	}
 
 	return prompts, resp, nil
@@ -151,10 +165,19 @@ func (s *PromptsService) Delete(ctx context.Context, promptID string) (*Response
 	return resp, nil
 }
 
-// Toggle toggles a prompt's active status.
+// SetState sets a prompt's active status using the preferred /state endpoint.
+func (s *PromptsService) SetState(ctx context.Context, promptID string, activate bool) (*Prompt, *Response, error) {
+	return s.setState(ctx, promptID, activate, "state")
+}
+
+// Toggle toggles a prompt's active status using the legacy /toggle endpoint.
 // Note: promptID changed from int to string in v1.0.0.
 func (s *PromptsService) Toggle(ctx context.Context, promptID string, activate bool) (*Prompt, *Response, error) {
-	u := fmt.Sprintf("prompts/%s/toggle?activate=%t", promptID, activate)
+	return s.setState(ctx, promptID, activate, "toggle")
+}
+
+func (s *PromptsService) setState(ctx context.Context, promptID string, activate bool, endpoint string) (*Prompt, *Response, error) {
+	u := fmt.Sprintf("prompts/%s/%s?activate=%t", promptID, endpoint, activate)
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil)
 	if err != nil {
@@ -173,7 +196,7 @@ func (s *PromptsService) Toggle(ctx context.Context, promptID string, activate b
 	if promptData, ok := result["prompt"]; ok {
 		// Re-marshal and unmarshal to convert to Prompt struct
 		promptJSON, _ := json.Marshal(promptData)
-		json.Unmarshal(promptJSON, &prompt)
+		_ = json.Unmarshal(promptJSON, &prompt)
 	}
 
 	return prompt, resp, nil

@@ -39,6 +39,31 @@ func TestPromptsService_List(t *testing.T) {
 	}
 }
 
+func TestPromptsService_List_PaginatedEnvelope(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/prompts", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		if got := r.URL.Query().Get("include_pagination"); got != "true" {
+			t.Errorf("include_pagination = %q, want %q", got, "true")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"prompts":[{"id":"1","name":"test-prompt","template":"Hello {{name}}","arguments":[],"isActive":true}],"nextCursor":"prompt-cursor-1"}`)
+	})
+
+	prompts, resp, err := client.Prompts.List(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("Prompts.List returned error: %v", err)
+	}
+	if len(prompts) != 1 {
+		t.Fatalf("Prompts.List returned %d prompts, want 1", len(prompts))
+	}
+	if resp.NextCursor != "prompt-cursor-1" {
+		t.Errorf("Response.NextCursor = %q, want %q", resp.NextCursor, "prompt-cursor-1")
+	}
+}
+
 func TestPromptsService_List_WithOptions(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
@@ -287,6 +312,48 @@ func TestPromptsService_Create(t *testing.T) {
 	}
 }
 
+func TestPromptsService_Create_CustomAndDisplayName(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	input := &PromptCreate{
+		Name:        "new-prompt",
+		CustomName:  String("custom_prompt"),
+		DisplayName: String("Custom Prompt"),
+		Template:    "Hello {{name}}",
+	}
+
+	mux.HandleFunc("/prompts", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("Failed to decode request body: %v", err)
+		}
+		promptBody, _ := body["prompt"].(map[string]any)
+		if got := promptBody["custom_name"]; got != "custom_prompt" {
+			t.Errorf("custom_name = %v, want %q", got, "custom_prompt")
+		}
+		if got := promptBody["display_name"]; got != "Custom Prompt" {
+			t.Errorf("display_name = %v, want %q", got, "Custom Prompt")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"id":"456","name":"new-prompt","originalName":"new-prompt","customName":"custom_prompt","customNameSlug":"custom-prompt","displayName":"Custom Prompt","template":"Hello {{name}}","arguments":[],"isActive":true}`)
+	})
+
+	prompt, _, err := client.Prompts.Create(context.Background(), input, nil)
+	if err != nil {
+		t.Fatalf("Prompts.Create returned error: %v", err)
+	}
+	if prompt.CustomName == nil || *prompt.CustomName != "custom_prompt" {
+		t.Errorf("CustomName = %v, want %q", prompt.CustomName, "custom_prompt")
+	}
+	if prompt.DisplayName == nil || *prompt.DisplayName != "Custom Prompt" {
+		t.Errorf("DisplayName = %v, want %q", prompt.DisplayName, "Custom Prompt")
+	}
+}
+
 func TestPromptsService_Create_WithOptions(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
@@ -447,6 +514,32 @@ func TestPromptsService_Toggle_Deactivate(t *testing.T) {
 
 	if prompt.IsActive {
 		t.Errorf("Prompts.Toggle returned prompt with isActive=%v, want false", prompt.IsActive)
+	}
+}
+
+func TestPromptsService_SetState(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/prompts/123/state", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		if got := r.URL.Query().Get("activate"); got != "false" {
+			t.Errorf("activate = %q, want %q", got, "false")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"status":"success","message":"Prompt deactivated","prompt":{"id":"123","name":"test-prompt","template":"Hello {{name}}","arguments":[],"isActive":false}}`)
+	})
+
+	prompt, _, err := client.Prompts.SetState(context.Background(), "123", false)
+	if err != nil {
+		t.Fatalf("Prompts.SetState returned error: %v", err)
+	}
+	if prompt == nil {
+		t.Fatal("Prompts.SetState returned nil prompt")
+	}
+	if prompt.IsActive {
+		t.Errorf("Prompts.SetState returned isActive = %v, want false", prompt.IsActive)
 	}
 }
 

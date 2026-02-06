@@ -2,6 +2,7 @@ package contextforge
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -18,10 +19,17 @@ import (
 // There are no MCP protocol endpoints to exclude for this service.
 
 // List retrieves a paginated list of agents from the ContextForge API.
-// Note: Agents use skip/limit (offset-based) pagination instead of cursor-based.
+// Upstream v1.0.0-BETA-2 uses cursor pagination; legacy skip is still accepted
+// for backward compatibility in AgentListOptions.
 func (s *AgentsService) List(ctx context.Context, opts *AgentListOptions) ([]*Agent, *Response, error) {
+	reqOpts := &AgentListOptions{}
+	if opts != nil {
+		*reqOpts = *opts
+	}
+	reqOpts.IncludePagination = true
+
 	u := "a2a"
-	u, err := addOptions(u, opts)
+	u, err := addOptions(u, reqOpts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -31,10 +39,18 @@ func (s *AgentsService) List(ctx context.Context, opts *AgentListOptions) ([]*Ag
 		return nil, nil, err
 	}
 
-	var agents []*Agent
-	resp, err := s.client.Do(ctx, req, &agents)
+	var raw json.RawMessage
+	resp, err := s.client.Do(ctx, req, &raw)
 	if err != nil {
 		return nil, resp, err
+	}
+
+	agents, nextCursor, err := decodeListResponse[Agent](raw, "agents")
+	if err != nil {
+		return nil, resp, err
+	}
+	if nextCursor != "" {
+		resp.NextCursor = nextCursor
 	}
 
 	return agents, resp, nil
@@ -124,10 +140,18 @@ func (s *AgentsService) Delete(ctx context.Context, agentID string) (*Response, 
 	return resp, err
 }
 
-// Toggle toggles an agent's enabled status.
-// The activate parameter determines whether to enable (true) or disable (false) the agent.
+// SetState sets an agent's enabled status using the preferred /state endpoint.
+func (s *AgentsService) SetState(ctx context.Context, agentID string, activate bool) (*Agent, *Response, error) {
+	return s.setState(ctx, agentID, activate, "state")
+}
+
+// Toggle toggles an agent's enabled status using the legacy /toggle endpoint.
 func (s *AgentsService) Toggle(ctx context.Context, agentID string, activate bool) (*Agent, *Response, error) {
-	u := fmt.Sprintf("a2a/%s/toggle?activate=%t", url.PathEscape(agentID), activate)
+	return s.setState(ctx, agentID, activate, "toggle")
+}
+
+func (s *AgentsService) setState(ctx context.Context, agentID string, activate bool, endpoint string) (*Agent, *Response, error) {
+	u := fmt.Sprintf("a2a/%s/%s?activate=%t", url.PathEscape(agentID), endpoint, activate)
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil)
 	if err != nil {

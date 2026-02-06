@@ -2,11 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-002
 **Component:** ContextForge MCP Gateway - Prompts API
-**Affected Version:** v0.8.0, v1.0.0-BETA-1 (partial)
+**Affected Version:** v0.8.0, v1.0.0-BETA-1, v1.0.0-BETA-2 (partial)
 **Severity:** Low
 **Status:** PARTIALLY FIXED (empty string still accepted)
 **Reported:** 2025-11-09
-**Validated:** 2026-01-13
+**Validated:** 2026-02-06
 
 ## Summary
 
@@ -236,7 +236,7 @@ SDK users should:
 
 ## References
 
-- OpenAPI Spec: `reference/contextforge-openapi-v0.8.0.json`
+- OpenAPI Spec: upstream `mcp-context-forge` tag schema (no local snapshot maintained in this repo)
 - SDK Integration Test: `test/integration/prompts_integration_test.go:490-501`
 
 ## Next Steps
@@ -297,5 +297,20 @@ Integration tests remain **skipped** because:
 
 **Report Generated:** 2025-11-09
 **Tested Against:** ContextForge v0.8.0
-**Fix Validated Against:** ContextForge v1.0.0-BETA-1
+**Fix Validated Against:** ContextForge v1.0.0-BETA-2
 **Reporter:** go-contextforge SDK Team
+
+---
+
+## v1.0.0-BETA-2 Revalidation Notes
+
+**Validated:** 2026-02-06
+
+- **Still Valid?** Partially. Missing `template` is rejected, but `template: ""` is still accepted.
+- **Is it actually a bug?** Yes. Accepting an empty prompt template contradicts expected prompt semantics.
+
+### Evidence
+
+- `POST /prompts` without `template` now returns validation error.
+- `POST /prompts` with `template: ""` still succeeds and creates an effectively empty prompt.
+- Current schema path: `mcpgateway/schemas.py` and `mcpgateway/common/validators.py`.

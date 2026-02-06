@@ -44,7 +44,7 @@ func TestAgentsService_BasicCRUD(t *testing.T) {
 			t.Errorf("Expected agent description %q, got %v", *agent.Description, created.Description)
 		}
 		if created.Metrics == nil {
-			t.Error("Expected created agent to have metrics")
+			t.Log("Created agent omitted metrics (allowed in v1.0.0-BETA-2)")
 		}
 
 		t.Logf("Successfully created agent: %s (ID: %s)", created.Name, created.ID)
@@ -211,7 +211,7 @@ func TestAgentsService_Toggle(t *testing.T) {
 		t.Logf("Agent initial state: enabled=%v", initialState)
 
 		// Toggle to disabled
-		toggled, _, err := client.Agents.Toggle(ctx, created.ID, false)
+		toggled, _, err := client.Agents.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to toggle agent: %v", err)
 		}
@@ -236,13 +236,13 @@ func TestAgentsService_Toggle(t *testing.T) {
 		})
 
 		// First disable
-		_, _, err = client.Agents.Toggle(ctx, created.ID, false)
+		_, _, err = client.Agents.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to disable agent: %v", err)
 		}
 
 		// Then enable
-		toggled, _, err := client.Agents.Toggle(ctx, created.ID, true)
+		toggled, _, err := client.Agents.SetState(ctx, created.ID, true)
 		if err != nil {
 			t.Fatalf("Failed to toggle agent: %v", err)
 		}
@@ -284,17 +284,23 @@ func TestAgentsService_Pagination(t *testing.T) {
 		t.Logf("Successfully listed %d agents with limit=2", len(agents))
 	})
 
-	t.Run("list with skip and limit", func(t *testing.T) {
+	t.Run("list with cursor and limit", func(t *testing.T) {
 		// Get first page
-		firstPage, _, err := client.Agents.List(ctx, &contextforge.AgentListOptions{Limit: 2})
+		firstPage, firstResp, err := client.Agents.List(ctx, &contextforge.AgentListOptions{Limit: 2})
 		if err != nil {
 			t.Fatalf("Failed to list first page: %v", err)
+		}
+		if firstResp == nil {
+			t.Fatal("Expected pagination response metadata on first page")
+		}
+		if firstResp.NextCursor == "" {
+			t.Fatal("Expected non-empty next cursor for first page")
 		}
 
 		// Get second page
 		secondPage, _, err := client.Agents.List(ctx, &contextforge.AgentListOptions{
-			Skip:  2,
-			Limit: 2,
+			Cursor: firstResp.NextCursor,
+			Limit:  2,
 		})
 		if err != nil {
 			t.Fatalf("Failed to list second page: %v", err)
@@ -413,7 +419,7 @@ func TestAgentsService_Filtering(t *testing.T) {
 		})
 
 		// Disable the agent
-		_, _, err = client.Agents.Toggle(ctx, created.ID, false)
+		_, _, err = client.Agents.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to disable agent: %v", err)
 		}
@@ -555,12 +561,12 @@ func TestAgentsService_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("toggle non-existent agent returns error", func(t *testing.T) {
-		_, _, err := client.Agents.Toggle(ctx, "non-existent-agent-id", true)
+		_, _, err := client.Agents.SetState(ctx, "non-existent-agent-id", true)
 		if err == nil {
-			t.Error("Expected error when toggling non-existent agent")
+			t.Error("Expected error when setting state for non-existent agent")
 		}
 
-		t.Logf("Correctly received error for non-existent agent toggle: %v", err)
+		t.Logf("Correctly received error for non-existent agent state change: %v", err)
 	})
 }
 
@@ -653,5 +659,39 @@ func TestAgentsService_EdgeCases(t *testing.T) {
 		}
 
 		t.Logf("Successfully updated agent config: %+v", updated.Config)
+	})
+}
+
+// TestAgentsService_SetState tests the preferred /state endpoint.
+func TestAgentsService_SetState(t *testing.T) {
+	skipIfNotIntegration(t)
+
+	client := setupClient(t)
+	ctx := context.Background()
+
+	t.Run("set agent state disabled then enabled", func(t *testing.T) {
+		created := createTestAgent(t, client, randomAgentName())
+
+		disabled, _, err := client.Agents.SetState(ctx, created.ID, false)
+		if err != nil {
+			t.Fatalf("Failed to disable agent via SetState: %v", err)
+		}
+		if disabled == nil {
+			t.Fatal("SetState returned nil agent on disable")
+		}
+		if disabled.Enabled {
+			t.Errorf("Expected disabled agent, got enabled=%v", disabled.Enabled)
+		}
+
+		enabled, _, err := client.Agents.SetState(ctx, created.ID, true)
+		if err != nil {
+			t.Fatalf("Failed to enable agent via SetState: %v", err)
+		}
+		if enabled == nil {
+			t.Fatal("SetState returned nil agent on enable")
+		}
+		if !enabled.Enabled {
+			t.Errorf("Expected enabled agent, got enabled=%v", enabled.Enabled)
+		}
 	})
 }

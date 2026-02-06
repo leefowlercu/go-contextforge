@@ -38,6 +38,31 @@ func TestAgentsService_List(t *testing.T) {
 	}
 }
 
+func TestAgentsService_List_PaginatedEnvelope(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/a2a", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		if got := r.URL.Query().Get("include_pagination"); got != "true" {
+			t.Errorf("include_pagination = %q, want %q", got, "true")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"agents":[{"id":"1","name":"agent-one","slug":"agent-one","endpointUrl":"https://example.com/agent","agentType":"generic","protocolVersion":"1.0","enabled":true,"reachable":true}],"nextCursor":"agent-cursor-1"}`)
+	})
+
+	agents, resp, err := client.Agents.List(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("Agents.List returned error: %v", err)
+	}
+	if len(agents) != 1 {
+		t.Fatalf("Agents.List returned %d agents, want 1", len(agents))
+	}
+	if resp.NextCursor != "agent-cursor-1" {
+		t.Errorf("Response.NextCursor = %q, want %q", resp.NextCursor, "agent-cursor-1")
+	}
+}
+
 func TestAgentsService_List_WithOptions(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
@@ -106,6 +131,28 @@ func TestAgentsService_Get(t *testing.T) {
 
 	if agent.Name != "test-agent" {
 		t.Errorf("Agents.Get returned agent name %q, want %q", agent.Name, "test-agent")
+	}
+}
+
+func TestAgentsService_Get_QueryParamAuthFields(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/a2a/qp-agent", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"id":"qp-agent","name":"query-agent","slug":"query-agent","endpointUrl":"https://example.com/agent","agentType":"generic","protocolVersion":"1.0","enabled":true,"reachable":true,"authType":"query_param","authQueryParamKey":"api_key","authQueryParamValueMasked":"******"}`)
+	})
+
+	agent, _, err := client.Agents.Get(context.Background(), "qp-agent")
+	if err != nil {
+		t.Fatalf("Agents.Get returned error: %v", err)
+	}
+	if agent.AuthQueryParamKey == nil || *agent.AuthQueryParamKey != "api_key" {
+		t.Errorf("AuthQueryParamKey = %v, want %q", agent.AuthQueryParamKey, "api_key")
+	}
+	if agent.AuthQueryParamValueMasked == nil || *agent.AuthQueryParamValueMasked != "******" {
+		t.Errorf("AuthQueryParamValueMasked = %v, want %q", agent.AuthQueryParamValueMasked, "******")
 	}
 }
 
@@ -302,6 +349,29 @@ func TestAgentsService_Toggle_Activate(t *testing.T) {
 
 	if !agent.Enabled {
 		t.Errorf("Agents.Toggle returned enabled = false, want true")
+	}
+}
+
+func TestAgentsService_SetState(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/a2a/123/state", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		if got := r.URL.Query().Get("activate"); got != "false" {
+			t.Errorf("activate = %q, want %q", got, "false")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"id":"123","name":"test-agent","slug":"test-agent","endpointUrl":"https://example.com/agent","agentType":"generic","protocolVersion":"1.0","enabled":false,"reachable":true}`)
+	})
+
+	agent, _, err := client.Agents.SetState(context.Background(), "123", false)
+	if err != nil {
+		t.Fatalf("Agents.SetState returned error: %v", err)
+	}
+	if agent.Enabled {
+		t.Errorf("Agents.SetState returned enabled = %v, want false", agent.Enabled)
 	}
 }
 

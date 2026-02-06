@@ -39,6 +39,31 @@ func TestResourcesService_List(t *testing.T) {
 	}
 }
 
+func TestResourcesService_List_PaginatedEnvelope(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/resources", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		if got := r.URL.Query().Get("include_pagination"); got != "true" {
+			t.Errorf("include_pagination = %q, want %q", got, "true")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"resources":[{"id":"1","uri":"file:///test.txt","name":"test-resource","isActive":true}],"nextCursor":"res-cursor-1"}`)
+	})
+
+	resources, resp, err := client.Resources.List(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("Resources.List returned error: %v", err)
+	}
+	if len(resources) != 1 {
+		t.Fatalf("Resources.List returned %d resources, want 1", len(resources))
+	}
+	if resp.NextCursor != "res-cursor-1" {
+		t.Errorf("Response.NextCursor = %q, want %q", resp.NextCursor, "res-cursor-1")
+	}
+}
+
 func TestResourcesService_Get(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -142,6 +167,29 @@ func TestResourcesService_Get_NotFound(t *testing.T) {
 
 	if err == nil {
 		t.Error("Resources.Get expected error, got nil")
+	}
+}
+
+func TestResourcesService_GetInfo(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/resources/abc/info", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		if got := r.URL.Query().Get("include_inactive"); got != "true" {
+			t.Errorf("include_inactive = %q, want %q", got, "true")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"id":"abc","uri":"file:///abc.txt","name":"abc-resource","isActive":true}`)
+	})
+
+	opts := &ResourceInfoOptions{IncludeInactive: true}
+	resource, _, err := client.Resources.GetInfo(context.Background(), "abc", opts)
+	if err != nil {
+		t.Fatalf("Resources.GetInfo returned error: %v", err)
+	}
+	if resource.Name != "abc-resource" {
+		t.Errorf("Resources.GetInfo returned resource name %q, want %q", resource.Name, "abc-resource")
 	}
 }
 
@@ -361,6 +409,32 @@ func TestResourcesService_Toggle_MissingResource(t *testing.T) {
 
 	if err == nil {
 		t.Error("Resources.Toggle should return error when response missing 'resource' field")
+	}
+}
+
+func TestResourcesService_SetState(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/resources/456/state", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		if got := r.URL.Query().Get("activate"); got != "false" {
+			t.Errorf("activate = %q, want %q", got, "false")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"status":"success","resource":{"id":"456","uri":"file:///test.txt","name":"test-resource","is_active":false}}`)
+	})
+
+	resource, _, err := client.Resources.SetState(context.Background(), "456", false)
+	if err != nil {
+		t.Fatalf("Resources.SetState returned error: %v", err)
+	}
+	if resource == nil {
+		t.Fatal("Resources.SetState returned nil resource")
+	}
+	if resource.IsActive {
+		t.Errorf("Resources.SetState returned isActive = %v, want false", resource.IsActive)
 	}
 }
 

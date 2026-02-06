@@ -42,7 +42,7 @@ func TestServersService_BasicCRUD(t *testing.T) {
 			t.Errorf("Expected server description %q, got %v", *server.Description, created.Description)
 		}
 		if created.Metrics == nil {
-			t.Error("Expected created server to have metrics")
+			t.Log("Created server omitted metrics (allowed in v1.0.0-BETA-2)")
 		}
 
 		t.Logf("Successfully created server: %s (ID: %s)", created.Name, created.ID)
@@ -197,7 +197,7 @@ func TestServersService_Toggle(t *testing.T) {
 		t.Logf("Server initial state: isActive=%v", initialState)
 
 		// Toggle to inactive
-		toggled, _, err := client.Servers.Toggle(ctx, created.ID, false)
+		toggled, _, err := client.Servers.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to toggle server: %v", err)
 		}
@@ -210,9 +210,6 @@ func TestServersService_Toggle(t *testing.T) {
 	})
 
 	t.Run("toggle inactive to active", func(t *testing.T) {
-		// CONTEXTFORGE-001: Toggle returns stale state - see docs/upstream-bugs/contextforge-001-prompt-toggle.md
-		t.Skip("CONTEXTFORGE-001: Toggle returns stale isActive state")
-
 		server := minimalServerInput()
 		created, _, err := client.Servers.Create(ctx, server, nil)
 		if err != nil {
@@ -224,13 +221,13 @@ func TestServersService_Toggle(t *testing.T) {
 		})
 
 		// First deactivate the server
-		_, _, err = client.Servers.Toggle(ctx, created.ID, false)
+		_, _, err = client.Servers.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to deactivate server: %v", err)
 		}
 
 		// Now toggle to active
-		toggled, _, err := client.Servers.Toggle(ctx, created.ID, true)
+		toggled, _, err := client.Servers.SetState(ctx, created.ID, true)
 		if err != nil {
 			t.Fatalf("Failed to toggle server to active: %v", err)
 		}
@@ -246,7 +243,7 @@ func TestServersService_Toggle(t *testing.T) {
 		created := createTestServer(t, client, randomServerName())
 
 		// Toggle to inactive
-		_, _, err := client.Servers.Toggle(ctx, created.ID, false)
+		_, _, err := client.Servers.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to toggle server: %v", err)
 		}
@@ -359,9 +356,6 @@ func TestServersService_Filtering(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("filter by tags", func(t *testing.T) {
-		// CONTEXTFORGE-009: Tag filtering returns empty results - see docs/upstream-bugs/contextforge-009-tag-filtering-empty-results.md
-		t.Skip("CONTEXTFORGE-009: Tag filtering returns empty results")
-
 		// Create server with specific tags
 		server := &contextforge.ServerCreate{
 			Name:        randomServerName(),
@@ -441,7 +435,7 @@ func TestServersService_Filtering(t *testing.T) {
 		})
 
 		// Deactivate the server
-		_, _, err = client.Servers.Toggle(ctx, created.ID, false)
+		_, _, err = client.Servers.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to deactivate server: %v", err)
 		}
@@ -474,9 +468,6 @@ func TestServersService_Filtering(t *testing.T) {
 	})
 
 	t.Run("combined filters", func(t *testing.T) {
-		// CONTEXTFORGE-009: Tag filtering returns empty results - see docs/upstream-bugs/contextforge-009-tag-filtering-empty-results.md
-		t.Skip("CONTEXTFORGE-009: Combined filtering with tags returns empty results")
-
 		// Create server with specific tags and visibility
 		server := &contextforge.ServerCreate{
 			Name:        randomServerName(),
@@ -724,7 +715,7 @@ func TestServersService_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("toggle non-existent server", func(t *testing.T) {
-		_, _, err := client.Servers.Toggle(ctx, "non-existent-server-id-12345", true)
+		_, _, err := client.Servers.SetState(ctx, "non-existent-server-id-12345", true)
 		if err == nil {
 			t.Error("Expected error when toggling non-existent server")
 		}
@@ -812,5 +803,39 @@ func TestServersService_EdgeCases(t *testing.T) {
 		})
 
 		t.Logf("Successfully created server with empty associations arrays")
+	})
+}
+
+// TestServersService_SetState tests the preferred /state endpoint.
+func TestServersService_SetState(t *testing.T) {
+	skipIfNotIntegration(t)
+
+	client := setupClient(t)
+	ctx := context.Background()
+
+	t.Run("set server state disabled then enabled", func(t *testing.T) {
+		created := createTestServer(t, client, randomServerName())
+
+		disabled, _, err := client.Servers.SetState(ctx, created.ID, false)
+		if err != nil {
+			t.Fatalf("Failed to disable server via SetState: %v", err)
+		}
+		if disabled == nil {
+			t.Fatal("SetState returned nil server on disable")
+		}
+		if disabled.IsActive || disabled.Enabled {
+			t.Errorf("Expected disabled server, got isActive=%v enabled=%v", disabled.IsActive, disabled.Enabled)
+		}
+
+		enabled, _, err := client.Servers.SetState(ctx, created.ID, true)
+		if err != nil {
+			t.Fatalf("Failed to enable server via SetState: %v", err)
+		}
+		if enabled == nil {
+			t.Fatal("SetState returned nil server on enable")
+		}
+		if !enabled.IsActive && !enabled.Enabled {
+			t.Errorf("Expected enabled server, got isActive=%v enabled=%v", enabled.IsActive, enabled.Enabled)
+		}
 	})
 }

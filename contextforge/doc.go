@@ -10,15 +10,15 @@
 //
 // The SDK provides full CRUD operations for ContextForge resources:
 //
-//   - Manage tools with create, update, delete, and toggle operations
+//   - Manage tools with create, update, delete, and state/toggle operations
 //   - Manage resources with URI-based access, content retrieval, and template support
 //   - Manage gateways for MCP server federation and proxying
 //   - Manage servers including virtual MCP servers with association endpoints
 //   - Manage prompts with template-based AI interactions and rendered prompt retrieval
 //   - Manage A2A agents with agent-to-agent protocol support and invocation
 //   - Hybrid REST endpoints that return MCP-compatible data formats
-//   - Cursor-based pagination (Tools, Resources, Gateways, Servers, Prompts)
-//   - Skip/limit pagination (Agents, Teams)
+//   - Cursor-based pagination (Tools, Resources, Gateways, Servers, Prompts, Agents)
+//   - Skip/limit pagination (Teams and legacy agent pagination)
 //   - Rate limit tracking from response headers
 //   - Context support for all API calls
 //   - Bearer token (JWT) authentication
@@ -120,7 +120,7 @@
 //
 // The API supports two pagination patterns:
 //
-// Cursor-based pagination (Tools, Resources, Gateways, Servers, Prompts):
+// Cursor-based pagination (Tools, Resources, Gateways, Servers, Prompts, Agents):
 //
 //	var allTools []*contextforge.Tool
 //	opts := &contextforge.ToolListOptions{
@@ -140,7 +140,7 @@
 //		opts.Cursor = resp.NextCursor
 //	}
 //
-// Skip/limit (offset-based) pagination (Agents only):
+// Skip/limit (offset-based) pagination (Teams and legacy agents):
 //
 //	var allAgents []*contextforge.Agent
 //	opts := &contextforge.AgentListOptions{
@@ -200,6 +200,8 @@
 //	client.Servers    // Server-related operations
 //	client.Prompts    // Prompt-related operations
 //	client.Agents     // A2A agent-related operations
+//	client.Teams      // Team-related operations
+//	client.Cancel     // Cancellation operations
 //
 // Each service provides methods for different operations. Most services follow
 // a common CRUD pattern:
@@ -211,6 +213,7 @@
 //	Update(ctx, id, item) (*Type, *Response, error)
 //	Delete(ctx, id) (*Response, error)
 //	Toggle(ctx, id, activate) (*Type, *Response, error)
+//	SetState(ctx, id, activate) (*Type, *Response, error)
 //
 // Some services have unique methods:
 //

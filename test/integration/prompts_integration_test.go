@@ -42,7 +42,7 @@ func TestPromptsService_BasicCRUD(t *testing.T) {
 			t.Errorf("Expected prompt template %q, got %q", prompt.Template, created.Template)
 		}
 		if created.Metrics == nil {
-			t.Error("Expected created prompt to have metrics")
+			t.Log("Created prompt omitted metrics (allowed in v1.0.0-BETA-2)")
 		}
 
 		t.Logf("Successfully created prompt: %s (ID: %s)", created.Name, created.ID)
@@ -185,7 +185,7 @@ func TestPromptsService_Toggle(t *testing.T) {
 		t.Logf("Prompt initial state: isActive=%v", initialState)
 
 		// Toggle to inactive
-		toggled, _, err := client.Prompts.Toggle(ctx, created.ID, false)
+		toggled, _, err := client.Prompts.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to toggle prompt: %v", err)
 		}
@@ -198,7 +198,7 @@ func TestPromptsService_Toggle(t *testing.T) {
 	})
 
 	t.Run("toggle inactive to active", func(t *testing.T) {
-		t.Skip("Skipping due to upstream ContextForge bug - see docs/upstream-bugs/contextforge-001-prompt-toggle.md")
+		t.Skip("CONTEXTFORGE-001: Prompt toggle response still returns stale isActive in v1.0.0-BETA-2")
 
 		prompt := minimalPromptInput()
 
@@ -212,13 +212,13 @@ func TestPromptsService_Toggle(t *testing.T) {
 		})
 
 		// Toggle to inactive first
-		_, _, err = client.Prompts.Toggle(ctx, created.ID, false)
+		_, _, err = client.Prompts.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to toggle prompt to inactive: %v", err)
 		}
 
 		// Toggle back to active
-		toggled, _, err := client.Prompts.Toggle(ctx, created.ID, true)
+		toggled, _, err := client.Prompts.SetState(ctx, created.ID, true)
 		if err != nil {
 			t.Fatalf("Failed to toggle prompt to active: %v", err)
 		}
@@ -243,7 +243,7 @@ func TestPromptsService_Toggle(t *testing.T) {
 		})
 
 		// Toggle to inactive
-		_, _, err = client.Prompts.Toggle(ctx, created.ID, false)
+		_, _, err = client.Prompts.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to toggle prompt: %v", err)
 		}
@@ -285,9 +285,6 @@ func TestPromptsService_Filtering(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("filter by tags", func(t *testing.T) {
-		// CONTEXTFORGE-009: Tag filtering returns empty results - see docs/upstream-bugs/contextforge-009-tag-filtering-empty-results.md
-		t.Skip("CONTEXTFORGE-009: Tag filtering returns empty results")
-
 		// Create prompt with specific tag
 		prompt := minimalPromptInput()
 		prompt.Tags = []string{"test-filter-tag"}
@@ -368,7 +365,7 @@ func TestPromptsService_Filtering(t *testing.T) {
 		})
 
 		// Toggle to inactive
-		_, _, err = client.Prompts.Toggle(ctx, created.ID, false)
+		_, _, err = client.Prompts.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to toggle prompt: %v", err)
 		}
@@ -499,7 +496,7 @@ func TestPromptsService_InputValidation(t *testing.T) {
 	})
 
 	t.Run("create prompt without required template", func(t *testing.T) {
-		// CONTEXTFORGE-002: Partially fixed in v1.0.0-BETA-1 - missing template is rejected (422)
+		// CONTEXTFORGE-002: Partially fixed in v1.0.0-BETA-2 - missing template is rejected (422)
 		// but empty template "" is still accepted. SDK sends "" since Template is not *string.
 		t.Skip("CONTEXTFORGE-002: API accepts empty template string - see docs/upstream-bugs/contextforge-002-prompt-validation-missing-template.md")
 
@@ -560,9 +557,7 @@ func TestPromptsService_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("toggle non-existent prompt returns 404", func(t *testing.T) {
-		t.Skip("Skipping due to upstream ContextForge bug - see docs/upstream-bugs/contextforge-003-prompt-toggle-error-code.md")
-
-		_, _, err := client.Prompts.Toggle(ctx, "99999999", true)
+		_, _, err := client.Prompts.SetState(ctx, "99999999", true)
 		if err == nil {
 			t.Error("Expected error when toggling non-existent prompt")
 		}
@@ -834,6 +829,40 @@ func TestPromptsService_GetRenderedPrompt(t *testing.T) {
 			t.Log("Note: API may allow missing required arguments (renders template as-is)")
 		} else {
 			t.Logf("API rejected missing required arguments: %v", err)
+		}
+	})
+}
+
+// TestPromptsService_SetState tests the preferred /state endpoint.
+func TestPromptsService_SetState(t *testing.T) {
+	skipIfNotIntegration(t)
+
+	client := setupClient(t)
+	ctx := context.Background()
+
+	t.Run("set prompt state disabled then enabled", func(t *testing.T) {
+		created := createTestPrompt(t, client, randomPromptName())
+
+		disabled, _, err := client.Prompts.SetState(ctx, created.ID, false)
+		if err != nil {
+			t.Fatalf("Failed to disable prompt via SetState: %v", err)
+		}
+		if disabled == nil {
+			t.Fatal("SetState returned nil prompt on disable")
+		}
+		if disabled.IsActive || disabled.Enabled {
+			t.Errorf("Expected disabled prompt, got isActive=%v enabled=%v", disabled.IsActive, disabled.Enabled)
+		}
+
+		enabled, _, err := client.Prompts.SetState(ctx, created.ID, true)
+		if err != nil {
+			t.Fatalf("Failed to enable prompt via SetState: %v", err)
+		}
+		if enabled == nil {
+			t.Fatal("SetState returned nil prompt on enable")
+		}
+		if !enabled.IsActive && !enabled.Enabled {
+			t.Errorf("Expected enabled prompt, got isActive=%v enabled=%v", enabled.IsActive, enabled.Enabled)
 		}
 	})
 }

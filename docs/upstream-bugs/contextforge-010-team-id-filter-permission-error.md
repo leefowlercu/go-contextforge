@@ -2,10 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-010
 **Component:** ContextForge MCP Gateway
-**Affected Version:** v1.0.0-BETA-1
+**Affected Version:** v1.0.0-BETA-1, v1.0.0-BETA-2 (partial)
 **Severity:** Medium
-**Status:** Confirmed
+**Status:** PARTIALLY VALID in v1.0.0-BETA-2
 **Reported:** 2026-01-12
+**Last Validated:** 2026-02-06
 
 ## Summary
 
@@ -100,3 +101,18 @@ The error message indicates permission service logic is rejecting the request. P
 ### Further Investigation Needed
 
 This bug requires runtime debugging to identify the exact code path that generates the 403 error. The permission checking logic in `mcpgateway/services/permission_service.py` handles team scoping but the specific error path was not identified in static analysis.
+
+---
+
+## v1.0.0-BETA-2 Revalidation Notes
+
+**Validated:** 2026-02-06
+
+- **Still Valid?** Partially. Some `403` responses are expected for unauthorized team filters, but there is still an upstream authorization bug for multi-team tokens.
+- **Is it actually a bug?** Partially. The blanket claim is too broad, but there is a real defect in team selection logic.
+
+### Evidence
+
+- `main.list_tools` still compares requested `team_id` to singular `request.state.team_id`, which can reject valid team_ids present in token team scopes.
+- Unauthorized team filters returning `403` remains expected behavior.
+- This report should track the narrower multi-team authorization defect rather than all `403` outcomes.

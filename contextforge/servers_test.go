@@ -39,6 +39,31 @@ func TestServersService_List(t *testing.T) {
 	}
 }
 
+func TestServersService_List_PaginatedEnvelope(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/servers", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		if got := r.URL.Query().Get("include_pagination"); got != "true" {
+			t.Errorf("include_pagination = %q, want %q", got, "true")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"servers":[{"id":"1","name":"test-server","isActive":true}],"nextCursor":"srv-cursor-1"}`)
+	})
+
+	servers, resp, err := client.Servers.List(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("Servers.List returned error: %v", err)
+	}
+	if len(servers) != 1 {
+		t.Fatalf("Servers.List returned %d servers, want 1", len(servers))
+	}
+	if resp.NextCursor != "srv-cursor-1" {
+		t.Errorf("Response.NextCursor = %q, want %q", resp.NextCursor, "srv-cursor-1")
+	}
+}
+
 func TestServersService_List_WithOptions(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
@@ -99,6 +124,28 @@ func TestServersService_Get(t *testing.T) {
 
 	if server.Name != "test-server" {
 		t.Errorf("Servers.Get returned server name %q, want %q", server.Name, "test-server")
+	}
+}
+
+func TestServersService_Get_OAuthFields(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/servers/oauth-1", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"id":"oauth-1","name":"oauth-server","isActive":true,"oauthEnabled":true,"oauthConfig":{"authorization_server":"https://auth.example.com"}}`)
+	})
+
+	server, _, err := client.Servers.Get(context.Background(), "oauth-1")
+	if err != nil {
+		t.Fatalf("Servers.Get returned error: %v", err)
+	}
+	if !server.OAuthEnabled {
+		t.Errorf("OAuthEnabled = %v, want true", server.OAuthEnabled)
+	}
+	if got := server.OAuthConfig["authorization_server"]; got != "https://auth.example.com" {
+		t.Errorf("OAuthConfig.authorization_server = %v, want %q", got, "https://auth.example.com")
 	}
 }
 
@@ -293,6 +340,29 @@ func TestServersService_Toggle_Deactivate(t *testing.T) {
 
 	if server.IsActive {
 		t.Errorf("Servers.Toggle returned server with isActive=%v, want false", server.IsActive)
+	}
+}
+
+func TestServersService_SetState(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/servers/123/state", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		if got := r.URL.Query().Get("activate"); got != "false" {
+			t.Errorf("activate = %q, want %q", got, "false")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"id":"123","name":"test-server","isActive":false}`)
+	})
+
+	server, _, err := client.Servers.SetState(context.Background(), "123", false)
+	if err != nil {
+		t.Fatalf("Servers.SetState returned error: %v", err)
+	}
+	if server.IsActive {
+		t.Errorf("Servers.SetState returned isActive = %v, want false", server.IsActive)
 	}
 }
 

@@ -110,6 +110,10 @@ func TestNewClient(t *testing.T) {
 			if c.Gateways == nil {
 				t.Error("NewClient() Gateways service is nil")
 			}
+
+			if c.Cancel == nil {
+				t.Error("NewClient() Cancel service is nil")
+			}
 		})
 	}
 }

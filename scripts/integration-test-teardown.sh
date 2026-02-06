@@ -19,6 +19,9 @@ if [ -f "$PROJECT_ROOT/tmp/contextforge-test.pid" ]; then
     fi
 fi
 
+# Ensure any orphaned gateway worker is also stopped.
+pkill -f "mcpgateway --host 127.0.0.1 --port 8000" 2>/dev/null || true
+
 # Clean up test artifacts directory
 echo "🗑️  Removing test artifacts..."
 rm -rf "$PROJECT_ROOT/tmp"
