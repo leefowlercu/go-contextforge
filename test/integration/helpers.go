@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	defaultAddress         = "http://localhost:8000/"
+	defaultAddress         = "http://127.0.0.1:8000/"
 	defaultAdminEmail      = "admin@test.local"
 	defaultAdminPass       = "testpassword123"
 	testToolNamePrefix     = "test-tool"
@@ -549,9 +549,10 @@ func minimalAgentInput() *contextforge.AgentCreate {
 	}
 }
 
-// completeAgentInput returns an agent input with all optional fields for testing
-// Note: Auth fields are omitted because v1.0.0b1 API requires auth_token for bearer auth,
-// but the SDK's AgentCreate struct uses auth_value. This is a known API compatibility issue.
+// completeAgentInput returns an agent input with all optional fields for testing.
+// Note: Auth fields are omitted because ContextForge v1.0.0-BETA-2 still expects
+// auth_token for bearer auth while the SDK's AgentCreate uses auth_value
+// (CONTEXTFORGE-008).
 func completeAgentInput() *contextforge.AgentCreate {
 	return &contextforge.AgentCreate{
 		Name:            randomAgentName(),

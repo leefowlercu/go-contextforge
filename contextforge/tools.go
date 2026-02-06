@@ -16,8 +16,14 @@ import (
 
 // List retrieves a paginated list of tools from the ContextForge API.
 func (s *ToolsService) List(ctx context.Context, opts *ToolListOptions) ([]*Tool, *Response, error) {
+	reqOpts := &ToolListOptions{}
+	if opts != nil {
+		*reqOpts = *opts
+	}
+	reqOpts.IncludePagination = true
+
 	u := "tools"
-	u, err := addOptions(u, opts)
+	u, err := addOptions(u, reqOpts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -27,10 +33,18 @@ func (s *ToolsService) List(ctx context.Context, opts *ToolListOptions) ([]*Tool
 		return nil, nil, err
 	}
 
-	var tools []*Tool
-	resp, err := s.client.Do(ctx, req, &tools)
+	var raw json.RawMessage
+	resp, err := s.client.Do(ctx, req, &raw)
 	if err != nil {
 		return nil, resp, err
+	}
+
+	tools, nextCursor, err := decodeListResponse[Tool](raw, "tools")
+	if err != nil {
+		return nil, resp, err
+	}
+	if nextCursor != "" {
+		resp.NextCursor = nextCursor
 	}
 
 	return tools, resp, nil
@@ -126,28 +140,36 @@ func (s *ToolsService) Delete(ctx context.Context, toolID string) (*Response, er
 	return resp, nil
 }
 
-// Toggle toggles a tool's active status.
+// SetState sets a tool's active status using the preferred /state endpoint.
+func (s *ToolsService) SetState(ctx context.Context, toolID string, activate bool) (*Tool, *Response, error) {
+	return s.setState(ctx, toolID, activate, "state")
+}
+
+// Toggle toggles a tool's active status using the legacy /toggle endpoint.
 func (s *ToolsService) Toggle(ctx context.Context, toolID string, activate bool) (*Tool, *Response, error) {
-	u := fmt.Sprintf("tools/%s/toggle?activate=%t", url.PathEscape(toolID), activate)
+	return s.setState(ctx, toolID, activate, "toggle")
+}
+
+func (s *ToolsService) setState(ctx context.Context, toolID string, activate bool, endpoint string) (*Tool, *Response, error) {
+	u := fmt.Sprintf("tools/%s/%s?activate=%t", url.PathEscape(toolID), endpoint, activate)
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// The API returns a response with the tool data nested in the response
+	// State endpoints return a response with the tool data nested in the response.
 	var result map[string]any
 	resp, err := s.client.Do(ctx, req, &result)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	// Extract the tool from the response
+	// Extract the tool from the response.
 	var tool *Tool
 	if toolData, ok := result["tool"]; ok {
-		// Re-marshal and unmarshal to convert to Tool struct
 		toolJSON, _ := json.Marshal(toolData)
-		json.Unmarshal(toolJSON, &tool)
+		_ = json.Unmarshal(toolJSON, &tool)
 	}
 
 	return tool, resp, nil

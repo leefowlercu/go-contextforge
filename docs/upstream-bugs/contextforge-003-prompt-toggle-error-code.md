@@ -2,11 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-003
 **Component:** ContextForge MCP Gateway - Prompts API
-**Affected Version:** v0.8.0, v1.0.0-BETA-1
+**Affected Version:** v0.8.0, v1.0.0-BETA-1 (fixed in v1.0.0-BETA-2)
 **Severity:** Low
-**Status:** Confirmed
+**Status:** FIXED in v1.0.0-BETA-2
 **Reported:** 2025-11-09
-**Last Validated:** 2026-01-13
+**Last Validated:** 2026-02-06
 
 ## Summary
 
@@ -339,5 +339,19 @@ The toggle endpoint is now at `main.py:3236-3271` (was ~2690-2723).
 
 **Report Generated:** 2025-11-09
 **Tested Against:** ContextForge v0.8.0
-**Validated Against:** ContextForge v1.0.0-BETA-1
+**Validated Against:** ContextForge v1.0.0-BETA-2
 **Reporter:** go-contextforge SDK Team
+
+---
+
+## v1.0.0-BETA-2 Revalidation Notes
+
+**Validated:** 2026-02-06
+
+- **Still Valid?** No. The endpoint now returns `404` for non-existent prompts.
+- **Is it actually a bug?** Yes. Returning `400` for missing resources was an HTTP contract bug.
+
+### Evidence
+
+- Runtime check on `POST /prompts/99999999/toggle?activate=true` now returns `404`.
+- Current handler in `mcpgateway/main.py` maps this path to not-found behavior correctly.

@@ -2,11 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-004
 **Component:** ContextForge MCP Gateway
-**Affected Version:** v0.8.0, v1.0.0-BETA-1
+**Affected Version:** v0.8.0, v1.0.0-BETA-1, v1.0.0-BETA-2
 **Severity:** High
-**Status:** Confirmed (root cause identified)
+**Status:** Confirmed in v1.0.0-BETA-2 (still valid)
 **Reported:** 2025-11-09
-**Last Validated:** 2026-01-13
+**Last Validated:** 2026-02-06
 
 ## Summary
 
@@ -354,7 +354,7 @@ The SDK integration test failures are expected given the ContextForge bug. All S
 - Authentication: `mcpgateway/middleware/rbac.py:71-148`
 - Auth Service: `mcpgateway/auth.py:54-232`
 - SDK Integration Tests: `test/integration/teams_integration_test.go`
-- OpenAPI Spec: `reference/contextforge-openapi-v0.8.0.json`
+- OpenAPI Spec: upstream `mcp-context-forge` tag schema (no local snapshot maintained in this repo)
 
 ## Next Steps
 
@@ -441,5 +441,20 @@ async def get_team(team_id: str, current_user_ctx: dict = Depends(get_current_us
 
 **Report Generated:** 2025-11-09
 **Tested Against:** ContextForge v0.8.0
-**Validated Against:** ContextForge v1.0.0-BETA-1
+**Validated Against:** ContextForge v1.0.0-BETA-2
 **Reporter:** go-contextforge SDK Team
+
+---
+
+## v1.0.0-BETA-2 Revalidation Notes
+
+**Validated:** 2026-02-06
+
+- **Still Valid?** Yes. Individual teams endpoints remain broken under valid auth contexts.
+- **Is it actually a bug?** Yes. Authenticated users should not receive auth failures for valid routes/permissions.
+
+### Evidence
+
+- `teams.get_team(...)` still raises authentication errors in live checks.
+- Route order still allows `/{team_id}` to shadow `/discover` in `mcpgateway/routers/teams.py`.
+- Dependency/decorator mismatch remains in teams router/auth paths.

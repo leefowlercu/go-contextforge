@@ -143,9 +143,6 @@ func TestResourcesService_Toggle(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("toggle active to inactive", func(t *testing.T) {
-		// CONTEXTFORGE-001: Toggle returns stale state - see docs/upstream-bugs/contextforge-001-prompt-toggle.md
-		t.Skip("CONTEXTFORGE-001: Toggle returns stale isActive state")
-
 		// Create an active resource
 		resource := minimalResourceInput()
 		created, _, err := client.Resources.Create(ctx, resource, nil)
@@ -164,7 +161,7 @@ func TestResourcesService_Toggle(t *testing.T) {
 		}
 
 		// Toggle to inactive
-		toggled, _, err := client.Resources.Toggle(ctx, string(*created.ID), false)
+		toggled, _, err := client.Resources.SetState(ctx, string(*created.ID), false)
 		if err != nil {
 			t.Fatalf("Failed to toggle resource: %v", err)
 		}
@@ -177,9 +174,6 @@ func TestResourcesService_Toggle(t *testing.T) {
 	})
 
 	t.Run("toggle inactive to active", func(t *testing.T) {
-		// CONTEXTFORGE-001: Toggle returns stale state - see docs/upstream-bugs/contextforge-001-prompt-toggle.md
-		t.Skip("CONTEXTFORGE-001: Toggle returns stale isActive state")
-
 		// Create resource and toggle to inactive
 		resource := minimalResourceInput()
 		created, _, err := client.Resources.Create(ctx, resource, nil)
@@ -193,13 +187,13 @@ func TestResourcesService_Toggle(t *testing.T) {
 		})
 
 		// Toggle to inactive first
-		_, _, err = client.Resources.Toggle(ctx, string(*created.ID), false)
+		_, _, err = client.Resources.SetState(ctx, string(*created.ID), false)
 		if err != nil {
 			t.Fatalf("Failed to toggle resource to inactive: %v", err)
 		}
 
 		// Toggle back to active
-		toggled, _, err := client.Resources.Toggle(ctx, string(*created.ID), true)
+		toggled, _, err := client.Resources.SetState(ctx, string(*created.ID), true)
 		if err != nil {
 			t.Fatalf("Failed to toggle resource to active: %v", err)
 		}
@@ -309,7 +303,7 @@ func TestResourcesService_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("toggle non-existent resource", func(t *testing.T) {
-		_, _, err := client.Resources.Toggle(ctx, "non-existent-resource-id-xyz", true)
+		_, _, err := client.Resources.SetState(ctx, "non-existent-resource-id-xyz", true)
 		if err == nil {
 			t.Error("Expected error when toggling non-existent resource")
 		}
@@ -405,5 +399,75 @@ func TestResourcesService_GetContent(t *testing.T) {
 		}
 
 		t.Logf("Correctly received error for non-existent resource: %v", err)
+	})
+}
+
+func TestResourcesService_GetInfo(t *testing.T) {
+	skipIfNotIntegration(t)
+
+	client := setupClient(t)
+	ctx := context.Background()
+
+	t.Run("get resource metadata by id", func(t *testing.T) {
+		created := createTestResource(t, client, randomResourceName())
+		resourceID := string(*created.ID)
+
+		info, _, err := client.Resources.GetInfo(ctx, resourceID, &contextforge.ResourceInfoOptions{
+			IncludeInactive: true,
+		})
+		if err != nil {
+			t.Fatalf("Failed to get resource info: %v", err)
+		}
+		if info == nil {
+			t.Fatal("GetInfo returned nil resource")
+		}
+		if info.ID == nil || string(*info.ID) != resourceID {
+			t.Errorf("Expected resource ID %q, got %v", resourceID, info.ID)
+		}
+		if info.Name != created.Name {
+			t.Errorf("Expected resource name %q, got %q", created.Name, info.Name)
+		}
+	})
+}
+
+func TestResourcesService_SetState(t *testing.T) {
+	skipIfNotIntegration(t)
+
+	client := setupClient(t)
+	ctx := context.Background()
+
+	t.Run("set resource state disabled then enabled", func(t *testing.T) {
+		created := createTestResource(t, client, randomResourceName())
+		resourceID := string(*created.ID)
+
+		disabled, _, err := client.Resources.SetState(ctx, resourceID, false)
+		if err != nil {
+			t.Fatalf("Failed to disable resource via SetState: %v", err)
+		}
+		if disabled == nil {
+			t.Fatal("SetState returned nil resource on disable")
+		}
+		if disabled.IsActive || disabled.Enabled {
+			t.Errorf("Expected disabled resource, got isActive=%v enabled=%v", disabled.IsActive, disabled.Enabled)
+		}
+
+		// Verify disabled resource is still retrievable with include_inactive.
+		_, _, err = client.Resources.GetInfo(ctx, resourceID, &contextforge.ResourceInfoOptions{
+			IncludeInactive: true,
+		})
+		if err != nil {
+			t.Fatalf("Failed to fetch disabled resource via GetInfo: %v", err)
+		}
+
+		enabled, _, err := client.Resources.SetState(ctx, resourceID, true)
+		if err != nil {
+			t.Fatalf("Failed to enable resource via SetState: %v", err)
+		}
+		if enabled == nil {
+			t.Fatal("SetState returned nil resource on enable")
+		}
+		if !enabled.IsActive && !enabled.Enabled {
+			t.Errorf("Expected enabled resource, got isActive=%v enabled=%v", enabled.IsActive, enabled.Enabled)
+		}
 	})
 }

@@ -2,11 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-001
 **Component:** ContextForge MCP Gateway
-**Affected Version:** v0.8.0, v1.0.0-BETA-1
+**Affected Version:** v0.8.0, v1.0.0-BETA-1, v1.0.0-BETA-2
 **Severity:** Medium
-**Status:** Confirmed (likely still present in v1.0.0-BETA-1)
+**Status:** Confirmed in v1.0.0-BETA-2 (still valid)
 **Reported:** 2025-11-09
-**Last Validated:** 2026-01-13
+**Last Validated:** 2026-02-06
 
 ## Summary
 
@@ -238,7 +238,7 @@ The SDK integration test failure is expected given the ContextForge bug. All SDK
 - ContextForge Source: `mcpgateway/services/prompt_service.py:847-899`
 - Working Implementation: `mcpgateway/services/server_service.py:863-929`
 - SDK Integration Test: `test/integration/prompts_integration_test.go:196-223`
-- OpenAPI Spec: `reference/contextforge-openapi-v0.8.0.json`
+- OpenAPI Spec: upstream `mcp-context-forge` tag schema (no local snapshot maintained in this repo)
 
 ## Next Steps
 
@@ -286,5 +286,19 @@ The `_convert_db_prompt()` method reads `db_prompt.enabled` at line 253.
 
 **Report Generated:** 2025-11-09
 **Tested Against:** ContextForge v0.8.0
-**Validated Against:** ContextForge v1.0.0-BETA-1
+**Validated Against:** ContextForge v1.0.0-BETA-2
 **Reporter:** go-contextforge SDK Team
+
+---
+
+## v1.0.0-BETA-2 Revalidation Notes
+
+**Validated:** 2026-02-06
+
+- **Still Valid?** Yes. The issue still reproduces in the `v1.0.0-BETA-2` integration harness.
+- **Is it actually a bug?** Yes. Returning stale state from a mutation endpoint is a correctness bug.
+
+### Evidence
+
+- Runtime integration test `TestPromptsService_Toggle/toggle_inactive_to_active` still returns `isActive=false` immediately after `toggle?activate=true`.
+- The persisted state is correct when read later, indicating response staleness rather than failed persistence.

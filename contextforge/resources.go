@@ -2,10 +2,24 @@ package contextforge
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 )
+
+func normalizeResource(resource *Resource) *Resource {
+	if resource == nil {
+		return nil
+	}
+	if resource.Enabled && !resource.IsActive {
+		resource.IsActive = true
+	}
+	if resource.IsActive && !resource.Enabled {
+		resource.Enabled = true
+	}
+	return resource
+}
 
 // ResourcesService handles communication with the resource-related
 // methods of the ContextForge API.
@@ -19,8 +33,14 @@ import (
 
 // List retrieves a paginated list of resources from the ContextForge API.
 func (s *ResourcesService) List(ctx context.Context, opts *ResourceListOptions) ([]*Resource, *Response, error) {
+	reqOpts := &ResourceListOptions{}
+	if opts != nil {
+		*reqOpts = *opts
+	}
+	reqOpts.IncludePagination = true
+
 	u := "resources"
-	u, err := addOptions(u, opts)
+	u, err := addOptions(u, reqOpts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -30,10 +50,21 @@ func (s *ResourcesService) List(ctx context.Context, opts *ResourceListOptions) 
 		return nil, nil, err
 	}
 
-	var resources []*Resource
-	resp, err := s.client.Do(ctx, req, &resources)
+	var raw json.RawMessage
+	resp, err := s.client.Do(ctx, req, &raw)
 	if err != nil {
 		return nil, resp, err
+	}
+
+	resources, nextCursor, err := decodeListResponse[Resource](raw, "resources")
+	if err != nil {
+		return nil, resp, err
+	}
+	for i := range resources {
+		resources[i] = normalizeResource(resources[i])
+	}
+	if nextCursor != "" {
+		resp.NextCursor = nextCursor
 	}
 
 	return resources, resp, nil
@@ -56,6 +87,29 @@ func (s *ResourcesService) Get(ctx context.Context, resourceID string) (*Resourc
 	}
 
 	return content, resp, nil
+}
+
+// GetInfo retrieves metadata for a specific resource by its ID.
+// Unlike Get, this endpoint returns resource metadata rather than content.
+func (s *ResourcesService) GetInfo(ctx context.Context, resourceID string, opts *ResourceInfoOptions) (*Resource, *Response, error) {
+	u := fmt.Sprintf("resources/%s/info", url.PathEscape(resourceID))
+	u, err := addOptions(u, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, err := s.client.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var resource *Resource
+	resp, err := s.client.Do(ctx, req, &resource)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return normalizeResource(resource), resp, nil
 }
 
 // Create creates a new resource.
@@ -89,7 +143,7 @@ func (s *ResourcesService) Create(ctx context.Context, resource *ResourceCreate,
 		return nil, resp, err
 	}
 
-	return created, resp, nil
+	return normalizeResource(created), resp, nil
 }
 
 // Update updates an existing resource.
@@ -109,7 +163,7 @@ func (s *ResourcesService) Update(ctx context.Context, resourceID string, resour
 		return nil, resp, err
 	}
 
-	return updated, resp, nil
+	return normalizeResource(updated), resp, nil
 }
 
 // Delete deletes a resource by its ID.
@@ -135,6 +189,7 @@ type toggleResourceResponse struct {
 	MimeType          *string     `json:"mime_type,omitempty"`
 	Size              *int        `json:"size,omitempty"`
 	IsActive          bool        `json:"is_active"`
+	Enabled           bool        `json:"enabled,omitempty"`
 	Tags              []Tag       `json:"tags,omitempty"`
 	TeamID            *string     `json:"team_id,omitempty"`
 	Team              *string     `json:"team,omitempty"`
@@ -155,21 +210,25 @@ type toggleResourceResponse struct {
 	Version           *int        `json:"version,omitempty"`
 }
 
-// Toggle enables or disables a resource.
-// If activate is true, the resource is enabled. If false, it is disabled.
-//
-// Note: The toggle endpoint returns snake_case field names (is_active, mime_type, etc.)
-// while other endpoints return camelCase (isActive, mimeType, etc.). This is handled
-// internally by converting the response format.
+// SetState enables or disables a resource using the preferred /state endpoint.
+func (s *ResourcesService) SetState(ctx context.Context, resourceID string, activate bool) (*Resource, *Response, error) {
+	return s.setState(ctx, resourceID, activate, "state")
+}
+
+// Toggle enables or disables a resource using the legacy /toggle endpoint.
 func (s *ResourcesService) Toggle(ctx context.Context, resourceID string, activate bool) (*Resource, *Response, error) {
-	u := fmt.Sprintf("resources/%s/toggle?activate=%t", url.PathEscape(resourceID), activate)
+	return s.setState(ctx, resourceID, activate, "toggle")
+}
+
+func (s *ResourcesService) setState(ctx context.Context, resourceID string, activate bool, endpoint string) (*Resource, *Response, error) {
+	u := fmt.Sprintf("resources/%s/%s?activate=%t", url.PathEscape(resourceID), endpoint, activate)
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Toggle endpoint returns a wrapped response like: {"status": "...", "resource": {...}}
+	// State endpoints return a wrapped response like: {"status": "...", "resource": {...}}
 	var result struct {
 		Status   string                  `json:"status"`
 		Message  string                  `json:"message"`
@@ -193,7 +252,8 @@ func (s *ResourcesService) Toggle(ctx context.Context, resourceID string, activa
 		Description:       result.Resource.Description,
 		MimeType:          result.Resource.MimeType,
 		Size:              result.Resource.Size,
-		IsActive:          result.Resource.IsActive,
+		IsActive:          result.Resource.IsActive || result.Resource.Enabled,
+		Enabled:           result.Resource.Enabled || result.Resource.IsActive,
 		Tags:              result.Resource.Tags,
 		TeamID:            result.Resource.TeamID,
 		Team:              result.Resource.Team,
@@ -214,7 +274,7 @@ func (s *ResourcesService) Toggle(ctx context.Context, resourceID string, activa
 		Version:           result.Resource.Version,
 	}
 
-	return resource, resp, nil
+	return normalizeResource(resource), resp, nil
 }
 
 // ListTemplates retrieves available resource templates.

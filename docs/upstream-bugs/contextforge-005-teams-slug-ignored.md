@@ -2,11 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-005
 **Component:** ContextForge MCP Gateway
-**Affected Version:** v0.8.0, v1.0.0-BETA-1
+**Affected Version:** v0.8.0, v1.0.0-BETA-1, v1.0.0-BETA-2
 **Severity:** Low
-**Status:** Confirmed (root cause identified)
+**Status:** Confirmed in v1.0.0-BETA-2 (still valid)
 **Reported:** 2025-11-09
-**Last Validated:** 2026-01-13
+**Last Validated:** 2026-02-06
 
 ## Summary
 
@@ -283,7 +283,7 @@ The test failures correctly identify the API behavior mismatch.
 - ContextForge Source: `mcpgateway/services/team_management_service.py`
 - API Router: `mcpgateway/routers/teams.py`
 - SDK Integration Tests: `test/integration/teams_integration_test.go:52-84, 513-544`
-- OpenAPI Spec: `reference/contextforge-openapi-v0.8.0.json`
+- OpenAPI Spec: upstream `mcp-context-forge` tag schema (no local snapshot maintained in this repo)
 
 ## Next Steps
 
@@ -350,5 +350,20 @@ This is definitively a bug, not intentional behavior. The schema documents slug 
 
 **Report Generated:** 2025-11-09
 **Tested Against:** ContextForge v0.8.0
-**Validated Against:** ContextForge v1.0.0-BETA-1
+**Validated Against:** ContextForge v1.0.0-BETA-2
 **Reporter:** go-contextforge SDK Team
+
+---
+
+## v1.0.0-BETA-2 Revalidation Notes
+
+**Validated:** 2026-02-06
+
+- **Still Valid?** Yes. User-provided team slug is still ignored.
+- **Is it actually a bug?** Yes. Request schema advertises `slug` input, but implementation discards it.
+
+### Evidence
+
+- `TeamCreateRequest` still includes `slug`.
+- Router/service flow still does not pass user `slug` into creation logic.
+- Created team slug continues to be auto-generated from name.

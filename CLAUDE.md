@@ -116,7 +116,7 @@ This SDK does not have separate subsystems. All functionality is contained withi
 
 ### API Patterns
 
-Some API endpoints require request body wrapping (e.g., `{"tool": {...}}`). Check OpenAPI spec (`reference/contextforge-openapi-v0.8.0.json`) or existing service implementations for wrapping requirements.
+Some API endpoints require request body wrapping (e.g., `{"tool": {...}}`). Check upstream schema/router definitions for the target tag, or existing service implementations, for wrapping requirements.
 
 **Field Naming Conventions:**
 - Create types use snake_case for some fields (e.g., `mime_type`, `endpoint_url`)

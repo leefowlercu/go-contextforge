@@ -75,7 +75,7 @@ For more information about the A2A protocol, see the [official specification](ht
 
 ### Compatibility
 
-This SDK is tested against **ContextForge v1.0.0-BETA-1** (PyPI: `mcpgateway==1.0.0b1`).
+This SDK is tested against **ContextForge v1.0.0-BETA-2** (PyPI: `mcpgateway==1.0.0b2`).
 
 ## Installation
 
@@ -1167,6 +1167,7 @@ This SDK follows the service-oriented architecture pattern established by [googl
 - **PromptsService** - All prompt management operations
 - **AgentsService** - All A2A agent operations, invocation, and performance tracking
 - **TeamsService** - Team management, members, invitations, and discovery
+- **CancellationService** - Request cancellation and cancellation status checks for in-flight runs
 
 ### Custom Types
 
@@ -1187,7 +1188,7 @@ This SDK follows the service-oriented architecture pattern established by [googl
 
 ### Upstream ContextForge API Bugs
 
-The SDK integration tests have identified six bugs in ContextForge (confirmed in both v0.8.0 and v1.0.0-BETA-1). These bugs are in the upstream API, not the SDK implementation. Affected tests are skipped and will be re-enabled once upstream bugs are fixed.
+The SDK integration tests have identified six bugs in ContextForge (confirmed in both v0.8.0 and v1.0.0-BETA-1; revalidation against v1.0.0-BETA-2 is pending in this repository). These bugs are in the upstream API, not the SDK implementation. Affected tests are skipped and will be re-enabled once upstream bugs are fixed.
 
 **CONTEXTFORGE-001: Toggle Endpoints Return Stale State**
 The `POST /prompts/{id}/toggle` and `POST /resources/{id}/toggle` endpoints return stale `isActive` state despite correctly updating the database. See [`docs/upstream-bugs/contextforge-001-prompt-toggle.md`](docs/upstream-bugs/contextforge-001-prompt-toggle.md).

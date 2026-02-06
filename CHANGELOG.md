@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Feat: add cancellation service support (`/cancellation/cancel`, `/cancellation/status/{request_id}`)
+- Feat: add `/state` endpoint methods for tools, resources, prompts, gateways, servers, and A2A agents
+- Feat: add gateway manual refresh endpoint support (`POST /gateways/{id}/tools/refresh`)
+- Feat: add resource metadata endpoint support (`GET /resources/{id}/info`)
+
+### Changed
+- Feat: update list methods to support v1.0.0-BETA-2 paginated envelope responses (`include_pagination=true`, body `nextCursor`)
+- Feat: update SDK structs for v1.0.0-BETA-2 schema additions (prompt naming fields, gateway query-param auth/refresh metadata, server oauth fields, agent query-param auth fields)
+
+### Documentation
+- Docs: update tested-against version to ContextForge v1.0.0-BETA-2
+
 ## [0.8.1] - 2026-01-13
 
 ### Documentation
@@ -155,3 +170,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.2.1]: https://github.com/leefowlercu/go-contextforge/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/leefowlercu/go-contextforge/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/leefowlercu/go-contextforge/releases/tag/v0.1.0
+[Unreleased]: https://github.com/leefowlercu/go-contextforge/compare/v0.8.1...HEAD

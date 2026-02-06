@@ -60,6 +60,32 @@ func TestToolsService_List(t *testing.T) {
 	}
 }
 
+func TestToolsService_List_PaginatedEnvelope(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/tools", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		if got := r.URL.Query().Get("include_pagination"); got != "true" {
+			t.Errorf("include_pagination = %q, want %q", got, "true")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"tools":[{"id":"1","name":"tool-one","enabled":true}],"nextCursor":"tool-cursor-1"}`)
+	})
+
+	tools, resp, err := client.Tools.List(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("Tools.List returned error: %v", err)
+	}
+	if len(tools) != 1 {
+		t.Fatalf("Tools.List returned %d tools, want 1", len(tools))
+	}
+	if resp.NextCursor != "tool-cursor-1" {
+		t.Errorf("Response.NextCursor = %q, want %q", resp.NextCursor, "tool-cursor-1")
+	}
+}
+
 func TestToolsService_Get(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
@@ -204,5 +230,32 @@ func TestToolsService_Toggle(t *testing.T) {
 
 	if !tool.Enabled {
 		t.Errorf("Tools.Toggle returned tool with enabled=%v, want true", tool.Enabled)
+	}
+}
+
+func TestToolsService_SetState(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/tools/123/state", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+
+		if got := r.URL.Query().Get("activate"); got != "false" {
+			t.Errorf("activate = %q, want %q", got, "false")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"status":"success","message":"Tool deactivated","tool":{"id":"123","name":"test-tool","enabled":false}}`)
+	})
+
+	tool, _, err := client.Tools.SetState(context.Background(), "123", false)
+	if err != nil {
+		t.Fatalf("Tools.SetState returned error: %v", err)
+	}
+	if tool == nil {
+		t.Fatal("Tools.SetState returned nil tool")
+	}
+	if tool.Enabled {
+		t.Errorf("Tools.SetState returned enabled = %v, want false", tool.Enabled)
 	}
 }

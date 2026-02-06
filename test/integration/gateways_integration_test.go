@@ -136,9 +136,6 @@ func TestGatewaysService_BasicCRUD(t *testing.T) {
 	})
 
 	t.Run("create gateway with all optional fields", func(t *testing.T) {
-		// CONTEXTFORGE-007: Gateway tags not persisted - see docs/upstream-bugs/contextforge-007-gateway-tags-not-persisted.md
-		t.Skip("CONTEXTFORGE-007: Gateway tags not persisted on create")
-
 		gateway := gatewayCompleteInput(t)
 
 		created, _, err := client.Gateways.Create(ctx, gateway, nil)
@@ -205,9 +202,6 @@ func TestGatewaysService_BasicCRUD(t *testing.T) {
 	})
 
 	t.Run("update gateway", func(t *testing.T) {
-		// CONTEXTFORGE-007: Gateway tags not persisted - see docs/upstream-bugs/contextforge-007-gateway-tags-not-persisted.md
-		t.Skip("CONTEXTFORGE-007: Gateway tags not persisted on update")
-
 		created := gatewayCreate(t, client, randomGatewayName())
 
 		// Update the gateway
@@ -309,7 +303,7 @@ func TestGatewaysService_Toggle(t *testing.T) {
 		})
 
 		// Toggle to disabled
-		toggled, _, err := client.Gateways.Toggle(ctx, *created.ID, false)
+		toggled, _, err := client.Gateways.SetState(ctx, *created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to toggle gateway: %v", err)
 		}
@@ -333,7 +327,7 @@ func TestGatewaysService_Toggle(t *testing.T) {
 		})
 
 		// First disable the gateway
-		disabled, _, err := client.Gateways.Toggle(ctx, *created.ID, false)
+		disabled, _, err := client.Gateways.SetState(ctx, *created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to disable gateway: %v", err)
 		}
@@ -343,7 +337,7 @@ func TestGatewaysService_Toggle(t *testing.T) {
 		}
 
 		// Now toggle to enabled
-		toggled, _, err := client.Gateways.Toggle(ctx, *created.ID, true)
+		toggled, _, err := client.Gateways.SetState(ctx, *created.ID, true)
 		if err != nil {
 			t.Fatalf("Failed to toggle gateway: %v", err)
 		}
@@ -367,7 +361,7 @@ func TestGatewaysService_Toggle(t *testing.T) {
 		})
 
 		// Toggle to enabled
-		_, _, err = client.Gateways.Toggle(ctx, *created.ID, true)
+		_, _, err = client.Gateways.SetState(ctx, *created.ID, true)
 		if err != nil {
 			t.Fatalf("Failed to toggle gateway: %v", err)
 		}
@@ -406,7 +400,7 @@ func TestGatewaysService_Filtering(t *testing.T) {
 		})
 
 		// Disable the gateway
-		_, _, err = client.Gateways.Toggle(ctx, *created.ID, false)
+		_, _, err = client.Gateways.SetState(ctx, *created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to disable gateway: %v", err)
 		}
@@ -550,7 +544,7 @@ func TestGatewaysService_ErrorHandling(t *testing.T) {
 	})
 
 	t.Run("toggle non-existent gateway", func(t *testing.T) {
-		_, _, err := client.Gateways.Toggle(ctx, "non-existent-gateway-id-xyz", true)
+		_, _, err := client.Gateways.SetState(ctx, "non-existent-gateway-id-xyz", true)
 		if err == nil {
 			t.Error("Expected error when toggling non-existent gateway")
 		} else {
@@ -647,6 +641,69 @@ func TestGatewaysService_EdgeCases(t *testing.T) {
 				cleanupGateway(t, client, *created.ID)
 			})
 			t.Logf("API accepted %d passthrough headers", len(headers))
+		}
+	})
+}
+
+// TestGatewaysService_SetState tests the preferred /state endpoint.
+func TestGatewaysService_SetState(t *testing.T) {
+	skipIfNotIntegration(t)
+
+	client := setupClient(t)
+	ctx := context.Background()
+
+	t.Run("set gateway state disabled then enabled", func(t *testing.T) {
+		created := gatewayCreate(t, client, randomGatewayName())
+
+		disabled, _, err := client.Gateways.SetState(ctx, *created.ID, false)
+		if err != nil {
+			t.Fatalf("Failed to disable gateway via SetState: %v", err)
+		}
+		if disabled == nil {
+			t.Fatal("SetState returned nil gateway on disable")
+		}
+		if disabled.Enabled {
+			t.Errorf("Expected disabled gateway, got enabled=%v", disabled.Enabled)
+		}
+
+		enabled, _, err := client.Gateways.SetState(ctx, *created.ID, true)
+		if err != nil {
+			t.Fatalf("Failed to enable gateway via SetState: %v", err)
+		}
+		if enabled == nil {
+			t.Fatal("SetState returned nil gateway on enable")
+		}
+		if !enabled.Enabled {
+			t.Errorf("Expected enabled gateway, got enabled=%v", enabled.Enabled)
+		}
+	})
+}
+
+// TestGatewaysService_RefreshTools tests manual gateway refresh endpoint.
+func TestGatewaysService_RefreshTools(t *testing.T) {
+	skipIfNotIntegration(t)
+
+	client := setupClient(t)
+	ctx := context.Background()
+
+	t.Run("refresh gateway discovery results", func(t *testing.T) {
+		created := gatewayCreate(t, client, randomGatewayName())
+
+		result, _, err := client.Gateways.RefreshTools(ctx, *created.ID, &contextforge.GatewayRefreshOptions{
+			IncludeResources: true,
+			IncludePrompts:   true,
+		})
+		if err != nil {
+			t.Fatalf("Failed to refresh gateway tools: %v", err)
+		}
+		if result == nil {
+			t.Fatal("RefreshTools returned nil response")
+		}
+		if result.GatewayID != "" && result.GatewayID != *created.ID {
+			t.Errorf("Expected gateway_id %q, got %q", *created.ID, result.GatewayID)
+		}
+		if !result.Success && result.Error == nil {
+			t.Errorf("RefreshTools reported success=false without error details")
 		}
 	})
 }

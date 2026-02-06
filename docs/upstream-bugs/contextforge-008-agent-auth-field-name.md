@@ -2,10 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-008
 **Component:** ContextForge MCP Gateway
-**Affected Version:** v1.0.0-BETA-1
+**Affected Version:** v1.0.0-BETA-1, v1.0.0-BETA-2
 **Severity:** Medium
-**Status:** Confirmed
+**Status:** Confirmed in v1.0.0-BETA-2 (still valid)
 **Reported:** 2026-01-12
+**Last Validated:** 2026-02-06
 
 ## Summary
 
@@ -155,3 +156,18 @@ The SDK uses `auth_value` based on OpenAPI spec. Options:
 1. Add `auth_token` field to SDK's `AgentCreate` struct
 2. Use `auth_token` instead of `auth_value` for bearer auth
 3. Wait for upstream fix to accept either field
+
+---
+
+## v1.0.0-BETA-2 Revalidation Notes
+
+**Validated:** 2026-02-06
+
+- **Still Valid?** Yes. `auth_value` alone is still rejected for bearer auth while `auth_token` works.
+- **Is it actually a bug?** Yes. It is an API contract mismatch between documented/typed fields and runtime validation.
+
+### Evidence
+
+- `POST /a2a` with `auth_type=bearer` + `auth_value` returns validation error.
+- Same request with `auth_token` succeeds.
+- Validator in `mcpgateway/schemas.py` still checks only `auth_token` for bearer mode.

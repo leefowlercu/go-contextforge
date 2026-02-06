@@ -2,10 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-009
 **Component:** ContextForge MCP Gateway
-**Affected Version:** v1.0.0-BETA-1
+**Affected Version:** v1.0.0-BETA-1 (fixed in v1.0.0-BETA-2)
 **Severity:** High
-**Status:** Confirmed
+**Status:** FIXED in v1.0.0-BETA-2
 **Reported:** 2026-01-12
+**Last Validated:** 2026-02-06
 
 ## Summary
 
@@ -162,3 +163,17 @@ The `json_contains_expr` correctly implements JSON containment checks, but assum
 ### Fix
 
 Fix CONTEXTFORGE-007 (tag storage format) and this will be resolved automatically.
+
+---
+
+## v1.0.0-BETA-2 Revalidation Notes
+
+**Validated:** 2026-02-06
+
+- **Still Valid?** No. Tag filtering now returns matching results.
+- **Is it actually a bug?** Yes. Returning empty lists for matching tag filters was a functional bug.
+
+### Evidence
+
+- Runtime checks for tools/prompts/servers with `?tags=` now return created entities.
+- `json_contains_tag_expr` in `mcpgateway/utils/sqlalchemy_modifier.py` supports current tag formats.

@@ -222,7 +222,7 @@ func TestToolsService_Toggle(t *testing.T) {
 		}
 
 		// Toggle to disabled
-		toggled, _, err := client.Tools.Toggle(ctx, created.ID, false)
+		toggled, _, err := client.Tools.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to toggle tool: %v", err)
 		}
@@ -246,7 +246,7 @@ func TestToolsService_Toggle(t *testing.T) {
 		})
 
 		// First disable the tool (if it was created enabled)
-		disabled, _, err := client.Tools.Toggle(ctx, created.ID, false)
+		disabled, _, err := client.Tools.SetState(ctx, created.ID, false)
 		if err != nil {
 			t.Fatalf("Failed to disable tool: %v", err)
 		}
@@ -256,7 +256,7 @@ func TestToolsService_Toggle(t *testing.T) {
 		}
 
 		// Now toggle to enabled
-		toggled, _, err := client.Tools.Toggle(ctx, created.ID, true)
+		toggled, _, err := client.Tools.SetState(ctx, created.ID, true)
 		if err != nil {
 			t.Fatalf("Failed to toggle tool: %v", err)
 		}
@@ -280,7 +280,7 @@ func TestToolsService_Toggle(t *testing.T) {
 		})
 
 		// Toggle to enabled
-		_, _, err = client.Tools.Toggle(ctx, created.ID, true)
+		_, _, err = client.Tools.SetState(ctx, created.ID, true)
 		if err != nil {
 			t.Fatalf("Failed to toggle tool: %v", err)
 		}
@@ -307,9 +307,6 @@ func TestToolsService_Filtering(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("filter by tags", func(t *testing.T) {
-		// CONTEXTFORGE-009: Tag filtering returns empty results - see docs/upstream-bugs/contextforge-009-tag-filtering-empty-results.md
-		t.Skip("CONTEXTFORGE-009: Tag filtering returns empty results")
-
 		// Create tool with specific tags
 		tool := minimalToolInput()
 		tool.Tags = contextforge.NewTags([]string{"filter-test", "integration"})
@@ -850,6 +847,40 @@ func TestToolsService_EdgeCases(t *testing.T) {
 				cleanupTool(t, client, created.ID)
 			})
 			t.Logf("Large schema accepted (50 properties)")
+		}
+	})
+}
+
+// TestToolsService_SetState tests the preferred /state endpoint.
+func TestToolsService_SetState(t *testing.T) {
+	skipIfNotIntegration(t)
+
+	client := setupClient(t)
+	ctx := context.Background()
+
+	t.Run("set state disabled then enabled", func(t *testing.T) {
+		created := createTestTool(t, client, randomToolName())
+
+		disabled, _, err := client.Tools.SetState(ctx, created.ID, false)
+		if err != nil {
+			t.Fatalf("Failed to disable tool via SetState: %v", err)
+		}
+		if disabled == nil {
+			t.Fatal("SetState returned nil tool on disable")
+		}
+		if disabled.Enabled {
+			t.Errorf("Expected disabled tool, got enabled=%v", disabled.Enabled)
+		}
+
+		enabled, _, err := client.Tools.SetState(ctx, created.ID, true)
+		if err != nil {
+			t.Fatalf("Failed to enable tool via SetState: %v", err)
+		}
+		if enabled == nil {
+			t.Fatal("SetState returned nil tool on enable")
+		}
+		if !enabled.Enabled {
+			t.Errorf("Expected enabled tool, got enabled=%v", enabled.Enabled)
 		}
 	})
 }

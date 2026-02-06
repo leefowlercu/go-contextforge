@@ -113,6 +113,7 @@ type Client struct {
 	Prompts   *PromptsService
 	Agents    *AgentsService
 	Teams     *TeamsService
+	Cancel    *CancellationService
 
 	// Rate limit tracking
 	rateMu     sync.Mutex
@@ -152,6 +153,10 @@ type AgentsService service
 // methods of the ContextForge API.
 type TeamsService service
 
+// CancellationService handles communication with the cancellation related
+// methods of the ContextForge API.
+type CancellationService service
+
 // Response wraps the standard http.Response and provides convenient access to
 // pagination and rate limit information.
 type Response struct {
@@ -187,6 +192,10 @@ type ListOptions struct {
 	// To get the next page of results, pass the NextCursor from the
 	// previous response.
 	Cursor string `url:"cursor,omitempty"`
+
+	// IncludePagination requests body-based pagination metadata in API responses.
+	// When true, list endpoints return an object with items and nextCursor fields.
+	IncludePagination bool `url:"include_pagination,omitempty"`
 }
 
 // Tag represents a tag that can be unmarshaled from either a string or an object.
@@ -327,6 +336,7 @@ type Resource struct {
 	MimeType    *string          `json:"mimeType,omitempty"`
 	Size        *int             `json:"size,omitempty"`
 	IsActive    bool             `json:"isActive"`
+	Enabled     bool             `json:"enabled,omitempty"`
 	Metrics     *ResourceMetrics `json:"metrics,omitempty"`
 
 	// Organizational fields
@@ -456,16 +466,19 @@ type Gateway struct {
 	Capabilities map[string]any `json:"capabilities,omitempty"`
 
 	// Authentication fields
-	PassthroughHeaders []string            `json:"passthroughHeaders,omitempty"`
-	AuthType           *string             `json:"authType,omitempty"`
-	AuthUsername       *string             `json:"authUsername,omitempty"`
-	AuthPassword       *string             `json:"authPassword,omitempty"`
-	AuthToken          *string             `json:"authToken,omitempty"`
-	AuthHeaderKey      *string             `json:"authHeaderKey,omitempty"`
-	AuthHeaderValue    *string             `json:"authHeaderValue,omitempty"`
-	AuthHeaders        []map[string]string `json:"authHeaders,omitempty"`
-	AuthValue          *string             `json:"authValue,omitempty"`
-	OAuthConfig        map[string]any      `json:"oauthConfig,omitempty"`
+	PassthroughHeaders        []string            `json:"passthroughHeaders,omitempty"`
+	AuthType                  *string             `json:"authType,omitempty"`
+	AuthUsername              *string             `json:"authUsername,omitempty"`
+	AuthPassword              *string             `json:"authPassword,omitempty"`
+	AuthToken                 *string             `json:"authToken,omitempty"`
+	AuthHeaderKey             *string             `json:"authHeaderKey,omitempty"`
+	AuthHeaderValue           *string             `json:"authHeaderValue,omitempty"`
+	AuthHeaders               []map[string]string `json:"authHeaders,omitempty"`
+	AuthValue                 *string             `json:"authValue,omitempty"`
+	OAuthConfig               map[string]any      `json:"oauthConfig,omitempty"`
+	AuthQueryParamKey         *string             `json:"authQueryParamKey,omitempty"`
+	AuthQueryParamValue       *string             `json:"authQueryParamValue,omitempty"`
+	AuthQueryParamValueMasked *string             `json:"authQueryParamValueMasked,omitempty"`
 
 	// Organizational fields
 	Tags       []Tag   `json:"tags,omitempty"`
@@ -480,18 +493,20 @@ type Gateway struct {
 	LastSeen  *Timestamp `json:"lastSeen,omitempty"`
 
 	// Metadata fields (read-only)
-	CreatedBy         *string `json:"createdBy,omitempty"`
-	CreatedFromIP     *string `json:"createdFromIp,omitempty"`
-	CreatedVia        *string `json:"createdVia,omitempty"`
-	CreatedUserAgent  *string `json:"createdUserAgent,omitempty"`
-	ModifiedBy        *string `json:"modifiedBy,omitempty"`
-	ModifiedFromIP    *string `json:"modifiedFromIp,omitempty"`
-	ModifiedVia       *string `json:"modifiedVia,omitempty"`
-	ModifiedUserAgent *string `json:"modifiedUserAgent,omitempty"`
-	ImportBatchID     *string `json:"importBatchId,omitempty"`
-	FederationSource  *string `json:"federationSource,omitempty"`
-	Version           *int    `json:"version,omitempty"`
-	Slug              *string `json:"slug,omitempty"`
+	CreatedBy              *string    `json:"createdBy,omitempty"`
+	CreatedFromIP          *string    `json:"createdFromIp,omitempty"`
+	CreatedVia             *string    `json:"createdVia,omitempty"`
+	CreatedUserAgent       *string    `json:"createdUserAgent,omitempty"`
+	ModifiedBy             *string    `json:"modifiedBy,omitempty"`
+	ModifiedFromIP         *string    `json:"modifiedFromIp,omitempty"`
+	ModifiedVia            *string    `json:"modifiedVia,omitempty"`
+	ModifiedUserAgent      *string    `json:"modifiedUserAgent,omitempty"`
+	ImportBatchID          *string    `json:"importBatchId,omitempty"`
+	FederationSource       *string    `json:"federationSource,omitempty"`
+	Version                *int       `json:"version,omitempty"`
+	Slug                   *string    `json:"slug,omitempty"`
+	RefreshIntervalSeconds *int       `json:"refreshIntervalSeconds,omitempty"`
+	LastRefreshAt          *Timestamp `json:"lastRefreshAt,omitempty"`
 }
 
 // GatewayListOptions specifies the optional parameters to the
@@ -518,6 +533,7 @@ type Server struct {
 	Description *string        `json:"description,omitempty"`
 	Icon        *string        `json:"icon,omitempty"`
 	IsActive    bool           `json:"isActive,omitempty"`
+	Enabled     bool           `json:"enabled,omitempty"`
 	Metrics     *ServerMetrics `json:"metrics,omitempty"`
 
 	// Association fields
@@ -538,17 +554,19 @@ type Server struct {
 	UpdatedAt *Timestamp `json:"updatedAt,omitempty"`
 
 	// Metadata fields (read-only)
-	CreatedBy         *string `json:"createdBy,omitempty"`
-	CreatedFromIP     *string `json:"createdFromIp,omitempty"`
-	CreatedVia        *string `json:"createdVia,omitempty"`
-	CreatedUserAgent  *string `json:"createdUserAgent,omitempty"`
-	ModifiedBy        *string `json:"modifiedBy,omitempty"`
-	ModifiedFromIP    *string `json:"modifiedFromIp,omitempty"`
-	ModifiedVia       *string `json:"modifiedVia,omitempty"`
-	ModifiedUserAgent *string `json:"modifiedUserAgent,omitempty"`
-	ImportBatchID     *string `json:"importBatchId,omitempty"`
-	FederationSource  *string `json:"federationSource,omitempty"`
-	Version           *int    `json:"version,omitempty"`
+	CreatedBy         *string        `json:"createdBy,omitempty"`
+	CreatedFromIP     *string        `json:"createdFromIp,omitempty"`
+	CreatedVia        *string        `json:"createdVia,omitempty"`
+	CreatedUserAgent  *string        `json:"createdUserAgent,omitempty"`
+	ModifiedBy        *string        `json:"modifiedBy,omitempty"`
+	ModifiedFromIP    *string        `json:"modifiedFromIp,omitempty"`
+	ModifiedVia       *string        `json:"modifiedVia,omitempty"`
+	ModifiedUserAgent *string        `json:"modifiedUserAgent,omitempty"`
+	ImportBatchID     *string        `json:"importBatchId,omitempty"`
+	FederationSource  *string        `json:"federationSource,omitempty"`
+	Version           *int           `json:"version,omitempty"`
+	OAuthEnabled      bool           `json:"oauthEnabled,omitempty"`
+	OAuthConfig       map[string]any `json:"oauthConfig,omitempty"`
 }
 
 // ServerMetrics represents performance statistics for a server.
@@ -646,17 +664,22 @@ type ServerAssociationOptions struct {
 type Prompt struct {
 	// Core fields
 	// Note: ID changed from int to string in v1.0.0
-	ID          string           `json:"id"`
-	Name        string           `json:"name"`
-	Description *string          `json:"description,omitempty"`
-	Template    string           `json:"template"`
-	Arguments   []PromptArgument `json:"arguments"`
-	CreatedAt   *Timestamp       `json:"createdAt,omitempty"`
-	UpdatedAt   *Timestamp       `json:"updatedAt,omitempty"`
-	IsActive    bool             `json:"isActive"`
-	Enabled     bool             `json:"enabled,omitempty"` // v1.0.0 uses 'enabled' in addition to 'isActive'
-	Tags        []Tag            `json:"tags,omitempty"`
-	Metrics     *PromptMetrics   `json:"metrics,omitempty"`
+	ID             string           `json:"id"`
+	Name           string           `json:"name"`
+	OriginalName   *string          `json:"originalName,omitempty"`
+	CustomName     *string          `json:"customName,omitempty"`
+	CustomNameSlug *string          `json:"customNameSlug,omitempty"`
+	DisplayName    *string          `json:"displayName,omitempty"`
+	GatewaySlug    *string          `json:"gatewaySlug,omitempty"`
+	Description    *string          `json:"description,omitempty"`
+	Template       string           `json:"template"`
+	Arguments      []PromptArgument `json:"arguments"`
+	CreatedAt      *Timestamp       `json:"createdAt,omitempty"`
+	UpdatedAt      *Timestamp       `json:"updatedAt,omitempty"`
+	IsActive       bool             `json:"isActive"`
+	Enabled        bool             `json:"enabled,omitempty"` // v1.0.0 uses 'enabled' in addition to 'isActive'
+	Tags           []Tag            `json:"tags,omitempty"`
+	Metrics        *PromptMetrics   `json:"metrics,omitempty"`
 
 	// Organizational fields
 	TeamID     *string `json:"teamId,omitempty"`
@@ -701,6 +724,8 @@ type PromptMetrics struct {
 // Note: Uses snake_case field names as required by the API.
 type PromptCreate struct {
 	Name        string           `json:"name"`
+	CustomName  *string          `json:"custom_name,omitempty"`
+	DisplayName *string          `json:"display_name,omitempty"`
 	Description *string          `json:"description,omitempty"`
 	Template    string           `json:"template"`
 	Arguments   []PromptArgument `json:"arguments,omitempty"`
@@ -722,6 +747,8 @@ type PromptCreate struct {
 // Note: Uses camelCase field names as required by the API.
 type PromptUpdate struct {
 	Name        *string          `json:"name,omitempty"`
+	CustomName  *string          `json:"customName,omitempty"`
+	DisplayName *string          `json:"displayName,omitempty"`
 	Description *string          `json:"description,omitempty"`
 	Template    *string          `json:"template,omitempty"`
 	Arguments   []PromptArgument `json:"arguments,omitempty"`
@@ -762,18 +789,21 @@ type PromptCreateOptions struct {
 // A2A agents enable inter-agent communication using the ContextForge A2A protocol.
 type Agent struct {
 	// Core fields
-	ID              string         `json:"id"`
-	Name            string         `json:"name"`
-	Slug            string         `json:"slug"`
-	Description     *string        `json:"description,omitempty"`
-	EndpointURL     string         `json:"endpointUrl"`
-	AgentType       string         `json:"agentType"`
-	ProtocolVersion string         `json:"protocolVersion"`
-	Capabilities    map[string]any `json:"capabilities,omitempty"`
-	Config          map[string]any `json:"config,omitempty"`
-	AuthType        *string        `json:"authType,omitempty"`
-	Enabled         bool           `json:"enabled"`
-	Reachable       bool           `json:"reachable"`
+	ID                        string         `json:"id"`
+	Name                      string         `json:"name"`
+	Slug                      string         `json:"slug"`
+	Description               *string        `json:"description,omitempty"`
+	EndpointURL               string         `json:"endpointUrl"`
+	AgentType                 string         `json:"agentType"`
+	ProtocolVersion           string         `json:"protocolVersion"`
+	Capabilities              map[string]any `json:"capabilities,omitempty"`
+	Config                    map[string]any `json:"config,omitempty"`
+	AuthType                  *string        `json:"authType,omitempty"`
+	OAuthConfig               map[string]any `json:"oauthConfig,omitempty"`
+	AuthQueryParamKey         *string        `json:"authQueryParamKey,omitempty"`
+	AuthQueryParamValueMasked *string        `json:"authQueryParamValueMasked,omitempty"`
+	Enabled                   bool           `json:"enabled"`
+	Reachable                 bool           `json:"reachable"`
 
 	// Timestamps
 	CreatedAt       *Timestamp `json:"createdAt,omitempty"`
@@ -829,8 +859,11 @@ type AgentCreate struct {
 	Config          map[string]any `json:"config,omitempty"`
 
 	// Authentication fields
-	AuthType  *string `json:"auth_type,omitempty"`
-	AuthValue *string `json:"auth_value,omitempty"` // Will be encrypted by API
+	AuthType            *string        `json:"auth_type,omitempty"`
+	AuthValue           *string        `json:"auth_value,omitempty"` // Will be encrypted by API
+	OAuthConfig         map[string]any `json:"oauth_config,omitempty"`
+	AuthQueryParamKey   *string        `json:"auth_query_param_key,omitempty"`
+	AuthQueryParamValue *string        `json:"auth_query_param_value,omitempty"`
 
 	// Organizational fields (snake_case)
 	Tags       []string `json:"tags,omitempty"`
@@ -849,30 +882,41 @@ type AgentCreate struct {
 // Note: Uses camelCase field names as required by the API.
 type AgentUpdate struct {
 	// All fields optional (camelCase per API spec)
-	Name            *string        `json:"name,omitempty"`
-	Description     *string        `json:"description,omitempty"`
-	EndpointURL     *string        `json:"endpointUrl,omitempty"`
-	AgentType       *string        `json:"agentType,omitempty"`
-	ProtocolVersion *string        `json:"protocolVersion,omitempty"`
-	Capabilities    map[string]any `json:"capabilities,omitempty"`
-	Config          map[string]any `json:"config,omitempty"`
-	AuthType        *string        `json:"authType,omitempty"`
-	AuthValue       *string        `json:"authValue,omitempty"`
-	Tags            []string       `json:"tags,omitempty"`
-	TeamID          *string        `json:"teamId,omitempty"`
-	OwnerEmail      *string        `json:"ownerEmail,omitempty"`
-	Visibility      *string        `json:"visibility,omitempty"`
+	Name                *string        `json:"name,omitempty"`
+	Description         *string        `json:"description,omitempty"`
+	EndpointURL         *string        `json:"endpointUrl,omitempty"`
+	AgentType           *string        `json:"agentType,omitempty"`
+	ProtocolVersion     *string        `json:"protocolVersion,omitempty"`
+	Capabilities        map[string]any `json:"capabilities,omitempty"`
+	Config              map[string]any `json:"config,omitempty"`
+	AuthType            *string        `json:"authType,omitempty"`
+	AuthValue           *string        `json:"authValue,omitempty"`
+	OAuthConfig         map[string]any `json:"oauthConfig,omitempty"`
+	AuthQueryParamKey   *string        `json:"authQueryParamKey,omitempty"`
+	AuthQueryParamValue *string        `json:"authQueryParamValue,omitempty"`
+	Tags                []string       `json:"tags,omitempty"`
+	TeamID              *string        `json:"teamId,omitempty"`
+	OwnerEmail          *string        `json:"ownerEmail,omitempty"`
+	Visibility          *string        `json:"visibility,omitempty"`
 }
 
 // AgentListOptions specifies the optional parameters to the
 // AgentsService.List method.
-// Note: Agents use skip/limit (offset-based) pagination instead of cursor-based.
+// Note: Upstream v1.0.0-BETA-2 supports cursor pagination. Skip remains
+// available for backward compatibility.
 type AgentListOptions struct {
 	// Skip specifies the number of items to skip (offset)
+	// Deprecated: Upstream v1.0.0-BETA-2 uses cursor pagination.
 	Skip int `url:"skip,omitempty"`
 
-	// Limit specifies the maximum number of items to return (max: 1000, default: 100)
+	// Limit specifies the maximum number of items to return.
 	Limit int `url:"limit,omitempty"`
+
+	// Cursor is an opaque string used for pagination.
+	Cursor string `url:"cursor,omitempty"`
+
+	// IncludePagination requests body-based pagination metadata in responses.
+	IncludePagination bool `url:"include_pagination,omitempty"`
 
 	// IncludeInactive includes inactive agents in the results
 	IncludeInactive bool `url:"include_inactive,omitempty"`
@@ -898,6 +942,58 @@ type AgentCreateOptions struct {
 type AgentInvokeRequest struct {
 	Parameters      map[string]any `json:"parameters,omitempty"`
 	InteractionType string         `json:"interaction_type,omitempty"` // default: "query"
+}
+
+// ResourceInfoOptions specifies optional parameters for ResourcesService.GetInfo.
+type ResourceInfoOptions struct {
+	IncludeInactive bool `url:"include_inactive,omitempty"`
+}
+
+// GatewayRefreshOptions specifies optional parameters for GatewaysService.RefreshTools.
+type GatewayRefreshOptions struct {
+	IncludeResources bool `url:"include_resources,omitempty"`
+	IncludePrompts   bool `url:"include_prompts,omitempty"`
+}
+
+// GatewayRefreshResponse represents the response from manual gateway refresh.
+type GatewayRefreshResponse struct {
+	GatewayID        string     `json:"gateway_id"`
+	Success          bool       `json:"success"`
+	Error            *string    `json:"error,omitempty"`
+	ToolsAdded       int        `json:"tools_added,omitempty"`
+	ToolsUpdated     int        `json:"tools_updated,omitempty"`
+	ToolsRemoved     int        `json:"tools_removed,omitempty"`
+	ResourcesAdded   int        `json:"resources_added,omitempty"`
+	ResourcesUpdated int        `json:"resources_updated,omitempty"`
+	ResourcesRemoved int        `json:"resources_removed,omitempty"`
+	PromptsAdded     int        `json:"prompts_added,omitempty"`
+	PromptsUpdated   int        `json:"prompts_updated,omitempty"`
+	PromptsRemoved   int        `json:"prompts_removed,omitempty"`
+	ValidationErrors []string   `json:"validation_errors,omitempty"`
+	DurationMS       float64    `json:"duration_ms,omitempty"`
+	RefreshedAt      *Timestamp `json:"refreshed_at,omitempty"`
+}
+
+// CancellationRequest represents a cancellation request payload.
+type CancellationRequest struct {
+	RequestID string  `json:"requestId"`
+	Reason    *string `json:"reason,omitempty"`
+}
+
+// CancellationResponse represents the response from cancellation requests.
+type CancellationResponse struct {
+	Status    string  `json:"status"`
+	RequestID string  `json:"requestId"`
+	Reason    *string `json:"reason,omitempty"`
+}
+
+// CancellationStatus represents cancellation status details for a run.
+type CancellationStatus struct {
+	Name         *string  `json:"name,omitempty"`
+	RegisteredAt *float64 `json:"registered_at,omitempty"`
+	Cancelled    bool     `json:"cancelled,omitempty"`
+	CancelledAt  *float64 `json:"cancelled_at,omitempty"`
+	CancelReason *string  `json:"cancel_reason,omitempty"`
 }
 
 // Team represents a ContextForge team.

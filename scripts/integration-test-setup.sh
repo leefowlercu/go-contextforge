@@ -18,6 +18,9 @@ echo "✓ Using uvx ($(uvx --version 2>&1))"
 
 echo "🔧 Starting Context Forge gateway..."
 
+# Target upstream release for integration harness
+CONTEXTFORGE_PYPI_VERSION="1.0.0b2"
+
 # Clean up old database to ensure fresh state
 echo "🗑️  Cleaning up old database files..."
 rm -rfv "$PROJECT_ROOT/tmp" || true
@@ -43,9 +46,10 @@ export BASIC_AUTH_USER=admin
 export BASIC_AUTH_PASSWORD=testpassword123
 export JWT_SECRET_KEY="test-secret-key-for-integration-testing"
 export SECURE_COOKIES=false
+export MCPGATEWAY_TOOL_CANCELLATION_ENABLED=true
 
-# Start gateway in background (v1.0.0-BETA-1)
-uvx --from 'mcp-contextforge-gateway==1.0.0b1' mcpgateway --host 0.0.0.0 --port 8000 > "$PROJECT_ROOT/tmp/contextforge-test.log" 2>&1 &
+# Start gateway in background (v1.0.0-BETA-2)
+uvx --from "mcp-contextforge-gateway==${CONTEXTFORGE_PYPI_VERSION}" mcpgateway --host 127.0.0.1 --port 8000 > "$PROJECT_ROOT/tmp/contextforge-test.log" 2>&1 &
 GATEWAY_PID=$!
 echo $GATEWAY_PID > "$PROJECT_ROOT/tmp/contextforge-test.pid"
 
@@ -55,7 +59,7 @@ echo "⏳ Waiting for Context Forge to be ready..."
 MAX_RETRIES=30
 RETRY_COUNT=0
 
-until curl -f http://localhost:8000/health > /dev/null 2>&1; do
+until curl -f http://127.0.0.1:8000/health > /dev/null 2>&1; do
   RETRY_COUNT=$((RETRY_COUNT + 1))
   if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
     echo "❌ Context Forge failed to start within timeout"
@@ -75,7 +79,7 @@ echo "🔑 Generating JWT token for integration tests..."
 
 # Step 1: Generate bootstrap token with basic admin claims
 echo "  Creating bootstrap token..."
-uvx --from 'mcp-contextforge-gateway==1.0.0b1' python3 -m mcpgateway.utils.create_jwt_token \
+uvx --from "mcp-contextforge-gateway==${CONTEXTFORGE_PYPI_VERSION}" python3 -m mcpgateway.utils.create_jwt_token \
   --exp 10080 \
   --secret test-secret-key-for-integration-testing \
   --data '{"username": "admin@test.local", "team_ids": [], "is_admin": true}' > "$PROJECT_ROOT/tmp/bootstrap-token.txt" 2>&1
@@ -86,7 +90,7 @@ if [ $? -eq 0 ]; then
 
   # Step 2: Use bootstrap token to create proper API token with full scopes
   echo "  Creating API token with proper scopes..."
-  API_RESPONSE=$(curl -s -X POST http://localhost:8000/tokens \
+  API_RESPONSE=$(curl -s -X POST http://127.0.0.1:8000/tokens \
     -H "Authorization: Bearer $BOOTSTRAP_TOKEN" \
     -H "Content-Type: application/json" \
     -d '{"name": "integration-test-token", "expires_in": 10080}')
@@ -115,7 +119,7 @@ fi
 echo ""
 
 echo "📊 Test Environment Information:"
-echo "   ContextForge Address: http://localhost:8000"
+echo "   ContextForge Address: http://127.0.0.1:8000"
 echo "   ContextForge PID: $GATEWAY_PID"
 echo "   Admin Email: admin@test.local"
 echo "   Admin Password: testpassword123"
@@ -123,7 +127,7 @@ echo "   JWT Token File: $PROJECT_ROOT/tmp/contextforge-test-token.txt"
 echo ""
 
 # Get version info
-echo "🔍 Gateway Version: $(curl -s -u admin@test.local:testpassword123 http://localhost:8000/version | jq -r .app.version || echo \"Version endpoint unavailable\")"
+echo "🔍 Gateway Version: $(curl -s -u admin@test.local:testpassword123 http://127.0.0.1:8000/version | jq -r .app.version || echo \"Version endpoint unavailable\")"
 echo ""
 
 echo "✨ Test environment is ready for integration tests!"

@@ -2,11 +2,11 @@
 
 **Bug ID:** CONTEXTFORGE-006
 **Component:** ContextForge MCP Gateway
-**Affected Version:** v0.8.0, v1.0.0-BETA-1
+**Affected Version:** v0.8.0, v1.0.0-BETA-1, v1.0.0-BETA-2
 **Severity:** Informational (not a bug)
 **Status:** BY DESIGN (FastAPI standard behavior)
 **Reported:** 2025-11-09
-**Last Validated:** 2026-01-13
+**Last Validated:** 2026-02-06
 
 ## Summary
 
@@ -331,5 +331,19 @@ if apiErr.Response.StatusCode != http.StatusUnprocessableEntity {  // 422
 
 **Report Generated:** 2025-11-09
 **Tested Against:** ContextForge v0.8.0
-**Validated Against:** ContextForge v1.0.0-BETA-1
+**Validated Against:** ContextForge v1.0.0-BETA-2
 **Reporter:** go-contextforge SDK Team
+
+---
+
+## v1.0.0-BETA-2 Revalidation Notes
+
+**Validated:** 2026-02-06
+
+- **Still Valid?** N/A. This remains an informational note, not a defect.
+- **Is it actually a bug?** No. `422` for schema validation is standard FastAPI behavior.
+
+### Evidence
+
+- Current app still uses FastAPI/Pydantic default validation pipeline.
+- Validation failures continue to return structured `422` responses consistently.

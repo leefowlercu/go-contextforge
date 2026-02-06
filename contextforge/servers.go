@@ -2,10 +2,24 @@ package contextforge
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 )
+
+func normalizeServer(server *Server) *Server {
+	if server == nil {
+		return nil
+	}
+	if server.Enabled && !server.IsActive {
+		server.IsActive = true
+	}
+	if server.IsActive && !server.Enabled {
+		server.Enabled = true
+	}
+	return server
+}
 
 // ServersService handles communication with the server-related
 // methods of the ContextForge API.
@@ -19,8 +33,14 @@ import (
 
 // List retrieves a paginated list of servers from the ContextForge API.
 func (s *ServersService) List(ctx context.Context, opts *ServerListOptions) ([]*Server, *Response, error) {
+	reqOpts := &ServerListOptions{}
+	if opts != nil {
+		*reqOpts = *opts
+	}
+	reqOpts.IncludePagination = true
+
 	u := "servers"
-	u, err := addOptions(u, opts)
+	u, err := addOptions(u, reqOpts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -30,10 +50,21 @@ func (s *ServersService) List(ctx context.Context, opts *ServerListOptions) ([]*
 		return nil, nil, err
 	}
 
-	var servers []*Server
-	resp, err := s.client.Do(ctx, req, &servers)
+	var raw json.RawMessage
+	resp, err := s.client.Do(ctx, req, &raw)
 	if err != nil {
 		return nil, resp, err
+	}
+
+	servers, nextCursor, err := decodeListResponse[Server](raw, "servers")
+	if err != nil {
+		return nil, resp, err
+	}
+	for i := range servers {
+		servers[i] = normalizeServer(servers[i])
+	}
+	if nextCursor != "" {
+		resp.NextCursor = nextCursor
 	}
 
 	return servers, resp, nil
@@ -53,8 +84,7 @@ func (s *ServersService) Get(ctx context.Context, serverID string) (*Server, *Re
 	if err != nil {
 		return nil, resp, err
 	}
-
-	return server, resp, nil
+	return normalizeServer(server), resp, nil
 }
 
 // Create creates a new server.
@@ -88,7 +118,7 @@ func (s *ServersService) Create(ctx context.Context, server *ServerCreate, opts 
 		return nil, resp, err
 	}
 
-	return created, resp, nil
+	return normalizeServer(created), resp, nil
 }
 
 // Update updates an existing server.
@@ -107,7 +137,7 @@ func (s *ServersService) Update(ctx context.Context, serverID string, server *Se
 		return nil, resp, err
 	}
 
-	return updated, resp, nil
+	return normalizeServer(updated), resp, nil
 }
 
 // Delete deletes a server by its ID.
@@ -127,9 +157,18 @@ func (s *ServersService) Delete(ctx context.Context, serverID string) (*Response
 	return resp, nil
 }
 
-// Toggle toggles a server's active status.
+// SetState sets a server's active status using the preferred /state endpoint.
+func (s *ServersService) SetState(ctx context.Context, serverID string, activate bool) (*Server, *Response, error) {
+	return s.setState(ctx, serverID, activate, "state")
+}
+
+// Toggle toggles a server's active status using the legacy /toggle endpoint.
 func (s *ServersService) Toggle(ctx context.Context, serverID string, activate bool) (*Server, *Response, error) {
-	u := fmt.Sprintf("servers/%s/toggle?activate=%t", url.PathEscape(serverID), activate)
+	return s.setState(ctx, serverID, activate, "toggle")
+}
+
+func (s *ServersService) setState(ctx context.Context, serverID string, activate bool, endpoint string) (*Server, *Response, error) {
+	u := fmt.Sprintf("servers/%s/%s?activate=%t", url.PathEscape(serverID), endpoint, activate)
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil)
 	if err != nil {
@@ -142,7 +181,7 @@ func (s *ServersService) Toggle(ctx context.Context, serverID string, activate b
 		return nil, resp, err
 	}
 
-	return server, resp, nil
+	return normalizeServer(server), resp, nil
 }
 
 // ListTools retrieves all tools associated with a specific server.
